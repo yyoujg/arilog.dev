@@ -15,6 +15,8 @@ const isProd = process.env.NODE_ENV === "production";
 function walk(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    // 프로젝트는 별도 스키마/로더(projects.ts)로 처리하므로 블로그 워크에서 제외.
+    if (entry.isDirectory() && entry.name === "projects") return [];
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) return walk(full);
     return entry.isFile() && entry.name.endsWith(".mdx") ? [full] : [];

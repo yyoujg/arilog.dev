@@ -239,3 +239,59 @@
   text-align: right;
   color: var(--muted-foreground);
 }
+
+/* 표 숫자 정렬용 고정폭 숫자 (remark-gfm ---: 우측정렬과 함께) */
+.prose td,
+.prose th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 인쇄: 항상 라이트 토큰 강제 + 크롬 숨김 + A4 페이지 */
+@media print {
+  /* 다크모드로 인쇄해도 흰 배경/검은 글자가 되도록 토큰을 라이트로 되돌린다 */
+  .dark {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.4 0 0);
+    --border: oklch(0.83 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+  }
+  html,
+  body {
+    background: #fff;
+  }
+  main {
+    padding-top: 0 !important;
+  }
+  @page {
+    size: A4;
+    margin: 1.4cm;
+  }
+  .resume-root {
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  /* 섹션/항목이 페이지 경계에서 잘리지 않게 */
+  section,
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}

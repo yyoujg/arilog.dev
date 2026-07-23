@@ -23,11 +23,15 @@ const frontmatterSchema = z.object({
 });
 
 /**
- * frontmatter를 검증한다. 실패하면 어느 파일의 어느 필드가 문제인지 명시하고
- * throw → 빌드를 실패시킨다.
+ * zod 스키마로 frontmatter를 검증한다. 실패하면 어느 파일의 어느 필드가
+ * 문제인지 명시하고 throw → 빌드를 실패시킨다. (포스트/프로젝트 공용)
  */
-export function parseFrontmatter(filePath: string, data: unknown): Frontmatter {
-  const result = frontmatterSchema.safeParse(data);
+export function validateFrontmatter<S extends z.ZodType>(
+  schema: S,
+  filePath: string,
+  data: unknown,
+): z.infer<S> {
+  const result = schema.safeParse(data);
   if (!result.success) {
     const details = result.error.issues
       .map((issue) => {
@@ -38,4 +42,8 @@ export function parseFrontmatter(filePath: string, data: unknown): Frontmatter {
     throw new Error(`Frontmatter 검증 실패: ${filePath}\n${details}`);
   }
   return result.data;
+}
+
+export function parseFrontmatter(filePath: string, data: unknown): Frontmatter {
+  return validateFrontmatter(frontmatterSchema, filePath, data);
 }

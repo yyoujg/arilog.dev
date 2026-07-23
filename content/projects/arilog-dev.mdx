@@ -1,0 +1,92 @@
+---
+title: arilog.dev
+summary: Next.js 16 App Router와 MDX로 만든 기술 블로그 겸 포트폴리오.
+period: 2026.07 - 진행 중
+role: 개인 프로젝트 (기획·개발)
+stack:
+  - Next.js
+  - React
+  - TypeScript
+  - TailwindCSS
+  - MDX
+  - shadcn/ui
+github: https://github.com/yyoujg/arilog.dev
+thumbnail: /images/sample-diagram.png
+featured: true
+order: 1
+---
+
+## 서비스 소개
+
+이력서에 첨부되는 개인 기술 블로그 겸 포트폴리오다. 콘텐츠는 MDX로 관리하고,
+빌드 타임에 정적 생성해 배포한다. "동작만 하는 코드가 아니라 코드 품질 자체가
+결과물"이라는 기준으로 만들었다.
+
+## 아키텍처
+
+Next.js 16 App Router 기반의 서버 컴포넌트 우선 구조다. 데이터 접근(파일 시스템,
+MDX 파싱, 인덱싱)은 `src/lib`에 격리하고, 상호작용이 필요한 최하단 컴포넌트에만
+`"use client"` 경계를 둔다.
+
+- 콘텐츠: `content/**/*.mdx` — `gray-matter`로 frontmatter 분리, zod로 검증
+- 렌더링: `next-mdx-remote/rsc` + `remark-gfm` + `rehype-slug`
+- 하이라이트: Shiki 듀얼 테마(light/dark)를 CSS 변수로 연결
+
+## 기술 스택과 선택 이유
+
+| 선택                | 이유                                             |
+| ------------------- | ------------------------------------------------ |
+| App Router          | 서버 컴포넌트로 클라이언트 번들을 최소화         |
+| next-mdx-remote/rsc | Turbopack 기본 환경에서 webpack 로더 의존을 피함 |
+| TailwindCSS v4      | 토큰 기반 디자인 시스템을 `@theme`로 관리        |
+| Shiki               | 빌드 타임 하이라이트로 런타임 JS 비용 0          |
+
+## 폴더 구조
+
+```text title="구조 요약"
+src/
+  app/          라우트
+  components/   common / layout / blog / project / ui
+  lib/          mdx, projects, shiki, 검증 유틸
+  constants/    site, resume, nav
+content/
+  <category>/   블로그 글
+  projects/     프로젝트
+```
+
+## 트러블슈팅
+
+### Radix Slot과 RSC (문제-원인-해결-결과)
+
+- **문제**: 서버 컴포넌트에서 `Button`을 import하면 `createContext is not a function`으로 빌드 실패.
+- **원인**: `@radix-ui/react-slot`이 `"use client"` 없이 모듈 최상단에서 `React.createContext`를 호출한다. 서버(RSC) 환경에는 `createContext`가 없다.
+- **해결**: `buttonVariants`를 Slot을 import하지 않는 별도 파일로 분리하고, 서버 컴포넌트의 링크 버튼은 `buttonVariants()` + `next/link` 조합으로 렌더한다.
+- **결과**: 불필요한 클라이언트 경계 없이 서버 컴포넌트를 유지.
+
+### MDX 표현식이 조용히 사라지는 문제
+
+<Callout type="warn">
+  `next-mdx-remote`는 기본값 `blockJS: true`로 JS 표현식을 제거한다. `{expr}`
+  자식과 `prop={expr}` 표현식 속성이 경고 없이 사라진다.
+</Callout>
+
+- **원인**: 보안용 `removeJavaScriptExpressions` 플러그인이 표현식을 스트립한다.
+- **해결**: `blockJS: true`를 유지하되, 표현식·import/export를 빌드 타임에 잡는 자체 MDX 린트를 추가했다.
+
+### 이미지 hydration 불일치
+
+단독 줄 마크다운 이미지는 remark가 `<p>`로 감싼다. 이미지 컴포넌트가 `<figure>`를
+렌더하면 `<p>` 안에 블록 요소가 들어가 HTML 명세를 위반하고, hydration 단계에서만
+드러난다. 무의존성 rehype 플러그인으로 이미지만 든 `<p>`를 해제해 해결했다.
+
+![아키텍처 개요](/images/sample-diagram.png "MDX 파이프라인 개요")
+
+## 성능 개선 전후
+
+// TODO: Sprint 5 실측 후 작성 (측정 조건 명시: 도구·버전 / 스로틀링 환경 / 랩 vs 필드 / 측정 횟수 / 시점 / 대상 URL). 측정 전에는 수치를 채우지 않는다.
+
+## 회고
+
+RSC 경계, 번들러 전환(Turbopack), MDX 파이프라인의 실제 제약을 문서와 패키지
+소스를 직접 확인하며 검증했다. "빌드 통과 = 완료"가 아니라는 것을 hydration
+버그로 다시 확인했다. 자세한 배경은 [저장소](https://github.com/yyoujg/arilog.dev)에 있다.
