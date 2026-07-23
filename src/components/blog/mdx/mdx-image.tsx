@@ -64,7 +64,7 @@ export function MdxImage({
     return (
       <Figure caption={title}>
         <div className="border-destructive/50 bg-destructive/10 text-muted-foreground flex min-h-32 flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-6 text-center text-sm">
-          <span className="text-destructive font-medium">
+          <span className="text-destructive font-semibold">
             이미지를 찾을 수 없음
           </span>
           <code className="text-xs">{src}</code>

@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 
 import { getAllPosts, getAllCategories } from "@/lib/mdx";
 import { POSTS_PER_PAGE } from "@/constants/blog";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostCard } from "@/components/blog/post-card";
 import { CategoryFilter } from "@/components/blog/category-filter";
 import { Pagination } from "@/components/blog/pagination";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Blog",
   description: "프론트엔드 기술 블로그 글 목록.",
-};
+  path: "/blog",
+});
 
 export default function BlogPage() {
   const posts = getAllPosts();

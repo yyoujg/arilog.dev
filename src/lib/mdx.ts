@@ -59,6 +59,17 @@ function loadPosts(): Post[] {
     }),
   );
 
+  // 글 경로는 정확히 <카테고리>/<파일> 2단계여야 한다(/blog/[category]/[slug]).
+  // 이미지 검증과 동일하게 dev warn / prod 집계 후 실패.
+  const badLevels = published
+    .filter((e) => e.post.slug.split("/").length !== 2)
+    .map((e) => `  - ${e.file} (slug="${e.post.slug}")`);
+  if (badLevels.length) {
+    const message = `글 경로 단계 오류 (정확히 <카테고리>/<파일> 2단계여야 함, ${badLevels.length}건):\n${badLevels.join("\n")}`;
+    if (isProd) throw new Error(message);
+    console.warn(`[mdx] ${message}`);
+  }
+
   return published.map((e) => e.post);
 }
 

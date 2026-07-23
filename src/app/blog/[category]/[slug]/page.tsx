@@ -4,28 +4,41 @@ import { notFound } from "next/navigation";
 
 import { getAllPosts, getPostBySlug, getAdjacentPosts } from "@/lib/mdx";
 import { extractToc } from "@/lib/toc";
+import { buildMetadata, blogPostingLd } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostMeta } from "@/components/blog/post-meta";
 import { PostNav } from "@/components/blog/post-nav";
 import { Toc } from "@/components/blog/toc";
 import { MdxRenderer } from "@/components/blog/mdx-renderer";
+import { JsonLd } from "@/components/seo/json-ld";
 
+// 글은 정확히 <카테고리>/<파일> 2단계(loadPosts에서 검증). slug는 "cat/file".
 export function generateStaticParams() {
-  return getAllPosts().map((post) => ({ slug: post.slug.split("/") }));
+  return getAllPosts().map((post) => {
+    const [category, slug] = post.slug.split("/");
+    return { category, slug };
+  });
 }
 
 export async function generateMetadata(
-  props: PageProps<"/blog/[...slug]">,
+  props: PageProps<"/blog/[category]/[slug]">,
 ): Promise<Metadata> {
-  const { slug } = await props.params;
-  const post = getPostBySlug(slug.join("/"));
+  const { category, slug } = await props.params;
+  const post = getPostBySlug(`${category}/${slug}`);
   if (!post) return {};
-  return { title: post.title, description: post.description };
+  return buildMetadata({
+    title: post.title,
+    description: post.description,
+    path: `/blog/${post.slug}`,
+    ogType: "article",
+  });
 }
 
-export default async function PostPage(props: PageProps<"/blog/[...slug]">) {
-  const { slug } = await props.params;
-  const post = getPostBySlug(slug.join("/"));
+export default async function PostPage(
+  props: PageProps<"/blog/[category]/[slug]">,
+) {
+  const { category, slug } = await props.params;
+  const post = getPostBySlug(`${category}/${slug}`);
   if (!post) notFound();
 
   const toc = extractToc(post.content);
@@ -33,6 +46,7 @@ export default async function PostPage(props: PageProps<"/blog/[...slug]">) {
 
   return (
     <Container className="py-12">
+      <JsonLd data={blogPostingLd(post)} />
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-10">
         <aside className="lg:order-2">
           <Toc toc={toc} />

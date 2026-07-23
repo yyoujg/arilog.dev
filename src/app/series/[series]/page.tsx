@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getAllSeries, getSeries } from "@/lib/mdx";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostMeta } from "@/components/blog/post-meta";
 
@@ -15,7 +16,11 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { series } = await props.params;
   const name = decodeURIComponent(series);
-  return { title: `시리즈: ${name}`, description: `${name} 시리즈 글 모음.` };
+  return buildMetadata({
+    title: `시리즈: ${name}`,
+    description: `${name} 시리즈 글 모음.`,
+    path: `/series/${encodeURIComponent(name)}`,
+  });
 }
 
 export default async function SeriesPage(props: PageProps<"/series/[series]">) {

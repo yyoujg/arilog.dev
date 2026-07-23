@@ -236,6 +236,14 @@ test: 검색 인덱스 생성 유닛 테스트 추가
 | LCP                    | < 2.5s  |
 | INP                    | < 200ms |
 
+### 측정 주의
+
+- **localhost Lighthouse는 세션 간 편차가 크다** — 동일 HTML에 77↔97 관측됨.
+  성능 판단은 반드시 **배포 환경(프리뷰/프로덕션)** 에서 측정한다. localhost 수치로
+  최적화 여부를 결정하지 않는다.
+- **`next/font`의 `preload: false`는 Next 16에서 preload `<link>`를 제거하지 못한다**
+  (실측 확인). 폰트 preload를 선택 제어하려면 next/font 옵션이 아니라 다른 방법이 필요하다.
+
 ---
 
 ## 스프린트
@@ -250,7 +258,6 @@ test: 검색 인덱스 생성 유닛 테스트 추가
 
 ### 열린 TODO
 
-- Pretendard 서브셋 폰트 파일 배치 후 `layout.tsx` 활성화 (현재 system-ui fallback)
 - `src/constants/site.ts` 의 LinkedIn URL placeholder 교체
 - `src/lib/env.ts` (zod) — Sprint 4 첫 env var 때 도입
 - `error.tsx` 에러 리포팅 연동 — Sprint 4
@@ -272,3 +279,23 @@ test: 검색 인덱스 생성 유닛 테스트 추가
 - 커스텀 MDX 컴포넌트가 블록 요소(figure, div, table 등)를 렌더할 때는
   HTML 중첩 규칙 위반(<p> 안의 블록 요소)이 없는지 확인한다.
   이 오류는 빌드를 통과하고 hydration 단계에서만 드러난다.
+
+## 폰트 웨이트
+
+지원 웨이트는 **400 / 600 / 700 뿐이다.** 각 웨이트마다 서브셋 파일이 261K씩 추가되므로
+임의로 늘리지 않는다.
+
+- `font-medium`(500), `font-light`(300) 사용 금지 → 600 또는 색상 위계로 대체
+- 새 웨이트가 필요하면 먼저 제안하고 승인받는다
+- 한글은 중간 웨이트 차이가 육안으로 구분되지 않으므로 굵기보다 색(text-muted-foreground)으로
+  위계를 만든다
+
+## 측정 전 필수 절차
+
+브라우저·curl·Lighthouse로 측정하기 전에 **반드시 기존 서버 프로세스를 완전히 종료**한다.
+포트 3000에 남은 이전 빌드 프로세스가 옛 HTML을 서빙해 측정을 오염시킨 사례가
+이 프로젝트에서 3회 발생했다(OG 헤더, priority 배선, robots 매트릭스).
+
+- pkill만으로는 놓치는 프로세스가 있다. lsof로 포트 점유를 직접 확인하고 종료할 것
+- 측정 결과가 코드와 모순되면 배선 버그를 의심하기 전에 stale 서버를 먼저 의심한다
+- 임시 data 속성을 노출해 HTML이 최신인지 확인하는 것이 빠른 판별법이다

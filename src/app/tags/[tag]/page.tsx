@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getAllTags, getPostsByTag } from "@/lib/mdx";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostCard } from "@/components/blog/post-card";
 
@@ -14,7 +15,11 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { tag } = await props.params;
   const name = decodeURIComponent(tag);
-  return { title: `#${name}`, description: `#${name} 태그의 글 모음.` };
+  return buildMetadata({
+    title: `#${name}`,
+    description: `#${name} 태그의 글 모음.`,
+    path: `/tags/${encodeURIComponent(name)}`,
+  });
 }
 
 export default async function TagPage(props: PageProps<"/tags/[tag]">) {

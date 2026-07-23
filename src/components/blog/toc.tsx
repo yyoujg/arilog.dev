@@ -51,7 +51,7 @@ function TocLinks({
             className={cn(
               "block py-1 transition-colors",
               active === item.id
-                ? "text-primary font-medium"
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getAllCategories, getPostsByCategory } from "@/lib/mdx";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostCard } from "@/components/blog/post-card";
 import { CategoryFilter } from "@/components/blog/category-filter";
@@ -15,10 +16,11 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { category } = await props.params;
   const name = decodeURIComponent(category);
-  return {
+  return buildMetadata({
     title: `${name} 카테고리`,
     description: `${name} 카테고리의 글 모음.`,
-  };
+    path: `/categories/${encodeURIComponent(name)}`,
+  });
 }
 
 export default async function CategoryPage(

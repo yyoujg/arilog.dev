@@ -36,6 +36,17 @@ src/
 content/        MDX 콘텐츠 (Sprint 2~)
 ```
 
+## 환경변수
+
+`.env.example` 참고. `.env.local` 에 값을 넣는다.
+
+| 변수                   | 설명                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL` | 사이트 절대 URL(프로토콜 포함). canonical·OG·sitemap·RSS 기준. 미설정 시 `VERCEL_PROJECT_PRODUCTION_URL` → `localhost` 순. |
+| `SITE_INDEXABLE`       | `"true"`/`"false"` 색인 허용 강제. 미설정 시 `VERCEL_ENV === "production"` 에서만 허용(그 외 차단).                        |
+
+`VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL` 은 Vercel이 자동 주입한다. 프리뷰 배포(`VERCEL_ENV=preview`)는 robots·robots meta 로 색인이 차단된다.
+
 ## 폰트 설정
 
 `src/assets/fonts/README.md` 참고. `PretendardVariable.woff2` 를 넣고 `layout.tsx` 2줄을 활성화한다.

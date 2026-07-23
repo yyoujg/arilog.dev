@@ -3,11 +3,13 @@ import { ExternalLinkIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { getAllProjects, getProjectBySlug } from "@/lib/projects";
+import { buildMetadata, techArticleLd } from "@/lib/seo";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/layout/container";
 import { GithubIcon } from "@/components/common/brand-icons";
 import { MdxRenderer } from "@/components/blog/mdx-renderer";
+import { JsonLd } from "@/components/seo/json-ld";
 
 export function generateStaticParams() {
   return getAllProjects().map((p) => ({ slug: p.slug }));
@@ -19,7 +21,12 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const project = getProjectBySlug(slug);
   if (!project) return {};
-  return { title: project.title, description: project.summary };
+  return buildMetadata({
+    title: project.title,
+    description: project.summary,
+    path: `/projects/${project.slug}`,
+    ogType: "article",
+  });
 }
 
 export default async function ProjectPage(
@@ -31,6 +38,7 @@ export default async function ProjectPage(
 
   return (
     <Container className="py-12">
+      <JsonLd data={techArticleLd(project)} />
       <article className="mx-auto max-w-3xl">
         <header className="border-border mb-8 border-b pb-8">
           <p className="text-muted-foreground text-sm">{project.period}</p>

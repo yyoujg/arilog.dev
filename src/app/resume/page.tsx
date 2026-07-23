@@ -3,14 +3,16 @@ import type { Metadata } from "next";
 import { RESUME } from "@/constants/resume";
 import { SITE } from "@/constants/site";
 import { getAllProjects } from "@/lib/projects";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { ResumePrintButton } from "@/components/resume/resume-print-button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Resume",
   description: `${RESUME.name} 이력서.`,
-};
+  path: "/resume",
+});
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -146,7 +148,7 @@ export default function ResumePage() {
                 key={i}
                 className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
               >
-                <span className="font-medium">
+                <span className="font-semibold">
                   {cert.name}{" "}
                   <span className="text-muted-foreground font-normal">
                     · {cert.issuer}

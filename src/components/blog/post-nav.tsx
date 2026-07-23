@@ -27,7 +27,7 @@ export function PostNav({
           <span className="text-muted-foreground flex items-center gap-1 text-sm">
             <ArrowLeftIcon className="size-4" /> 이전 글
           </span>
-          <span className="group-hover:text-primary mt-1 block font-medium">
+          <span className="group-hover:text-primary mt-1 block font-semibold">
             {prev.title}
           </span>
         </Link>
@@ -43,7 +43,7 @@ export function PostNav({
           <span className="text-muted-foreground flex items-center justify-end gap-1 text-sm">
             다음 글 <ArrowRightIcon className="size-4" />
           </span>
-          <span className="group-hover:text-primary mt-1 block font-medium">
+          <span className="group-hover:text-primary mt-1 block font-semibold">
             {next.title}
           </span>
         </Link>

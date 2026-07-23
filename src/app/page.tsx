@@ -1,14 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 
 import { getAllPosts } from "@/lib/mdx";
 import { getFeaturedProjects } from "@/lib/projects";
 import { RESUME } from "@/constants/resume";
+import { SITE } from "@/constants/site";
+import { buildMetadata, personLd } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { Hero } from "@/components/home/hero";
 import { PostCard } from "@/components/blog/post-card";
 import { ProjectCard } from "@/components/project/project-card";
 import { Badge } from "@/components/ui/badge";
+import { JsonLd } from "@/components/seo/json-ld";
+
+export const metadata: Metadata = buildMetadata({
+  description: SITE.description,
+  path: "/",
+});
 
 function SectionHeader({ title, href }: { title: string; href: string }) {
   return (
@@ -30,14 +39,20 @@ export default function HomePage() {
 
   return (
     <Container>
+      <JsonLd data={personLd()} />
       <Hero />
 
       {featured.length > 0 && (
         <section className="py-12">
           <SectionHeader title="Featured Projects" href="/projects" />
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((project) => (
-              <ProjectCard key={project.slug} project={project} />
+            {featured.map((project, i) => (
+              // 첫 카드만 priority(LCP 요소). 3개 전부 주면 대역폭 경합이 는다.
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                priority={i === 0}
+              />
             ))}
           </div>
         </section>

@@ -7,7 +7,14 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { Badge } from "@/components/ui/badge";
 import { GithubIcon } from "@/components/common/brand-icons";
 
-export function ProjectCard({ project }: { project: ProjectMeta }) {
+export function ProjectCard({
+  project,
+  priority = false,
+}: {
+  project: ProjectMeta;
+  // first-fold(홈 featured 첫 카드)에서만 true. LCP 요소를 즉시 로드한다.
+  priority?: boolean;
+}) {
   return (
     <article className="border-border bg-card group flex flex-col overflow-hidden rounded-xl border">
       <Link href={`/projects/${project.slug}`} className="block">
@@ -18,6 +25,10 @@ export function ProjectCard({ project }: { project: ProjectMeta }) {
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
             className="object-cover transition-transform group-hover:scale-105"
+            // Next 16은 next/image의 priority를 deprecated. above-the-fold LCP는
+            // loading="eager" + fetchPriority="high"로 즉시·우선 로드한다.
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
           />
         </div>
         <div className="p-5">

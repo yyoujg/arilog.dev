@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getAllPosts, getAllCategories } from "@/lib/mdx";
 import { POSTS_PER_PAGE } from "@/constants/blog";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { PostCard } from "@/components/blog/post-card";
 import { CategoryFilter } from "@/components/blog/category-filter";
@@ -20,10 +21,16 @@ export function generateStaticParams() {
   }));
 }
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: "프론트엔드 기술 블로그 글 목록.",
-};
+export async function generateMetadata(
+  props: PageProps<"/blog/page/[page]">,
+): Promise<Metadata> {
+  const { page } = await props.params;
+  return buildMetadata({
+    title: `Blog (${page}페이지)`,
+    description: "프론트엔드 기술 블로그 글 목록.",
+    path: `/blog/page/${page}`,
+  });
+}
 
 export default async function BlogPagedPage(
   props: PageProps<"/blog/page/[page]">,

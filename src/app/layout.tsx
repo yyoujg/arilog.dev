@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 
 import "./globals.css";
-// 폰트 파일 도착 후 활성화: 아래 import와 html className의 pretendard.variable 주석을 해제한다.
-// import { pretendard } from "@/lib/fonts";
+import { pretendard } from "@/lib/fonts";
+import { env } from "@/lib/env";
 import { SITE } from "@/constants/site";
 import { ThemeProvider } from "@/components/common/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE.url),
+  // 상대경로 metadata가 절대 URL로 해석되도록 런타임 해석된 SITE_URL을 base로.
+  metadataBase: new URL(env.SITE_URL),
   title: {
     default: SITE.title,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
+  // 색인 불가 환경(프리뷰/로컬)에서는 robots meta로도 색인을 막는다(robots.txt와 2중).
+  robots: env.IS_INDEXABLE ? undefined : { index: false, follow: false },
 };
 
 export default function RootLayout({
@@ -26,8 +29,7 @@ export default function RootLayout({
     <html
       lang="ko"
       suppressHydrationWarning
-      // className={pretendard.variable}
-      className="h-full"
+      className={`${pretendard.variable} h-full`}
     >
       <body className="flex min-h-full flex-col">
         <ThemeProvider

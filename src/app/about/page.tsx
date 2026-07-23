@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 
 import { RESUME } from "@/constants/resume";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Timeline } from "@/components/about/timeline";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "About",
   description: `${RESUME.name} 소개.`,
-};
+  path: "/about",
+});
 
 // TODO: 실제 관심사로 교체
 const INTERESTS = [
@@ -39,7 +41,7 @@ export default function AboutPage() {
           <div className="space-y-3">
             {RESUME.skills.map((group) => (
               <div key={group.category}>
-                <h3 className="text-muted-foreground mb-1.5 text-sm font-medium">
+                <h3 className="text-muted-foreground mb-1.5 text-sm font-semibold">
                   {group.category}
                 </h3>
                 <ul className="flex flex-wrap gap-1.5">
@@ -64,7 +66,7 @@ export default function AboutPage() {
           <ul className="space-y-2">
             {RESUME.certifications.map((cert, i) => (
               <li key={i} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-medium">{cert.name}</span>
+                <span className="font-semibold">{cert.name}</span>
                 <span className="text-muted-foreground text-sm">
                   {cert.issuer} · {cert.date}
                 </span>

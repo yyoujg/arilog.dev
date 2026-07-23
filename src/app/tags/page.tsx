@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getAllTags } from "@/lib/mdx";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Tags",
   description: "태그별 글 모음.",
-};
+  path: "/tags",
+});
 
 export default function TagsPage() {
   const tags = getAllTags();

@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 export default function NotFound() {
   return (
     <Container className="flex flex-col items-center py-32 text-center">
-      <p className="text-muted-foreground text-sm font-medium">404</p>
+      <p className="text-muted-foreground text-sm font-semibold">404</p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">
         페이지를 찾을 수 없습니다
       </h1>

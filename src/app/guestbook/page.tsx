@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Guestbook",
   description: "방명록.",
-};
+  path: "/guestbook",
+});
 
 export default function GuestbookPage() {
   return (

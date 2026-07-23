@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getAllStacks, getProjectsByStack } from "@/lib/projects";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { ProjectCard } from "@/components/project/project-card";
 import { StackFilter } from "@/components/project/stack-filter";
@@ -15,10 +16,11 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { stack } = await props.params;
   const name = decodeURIComponent(stack);
-  return {
+  return buildMetadata({
     title: `${name} 프로젝트`,
     description: `${name}를 사용한 프로젝트.`,
-  };
+    path: `/projects/stack/${encodeURIComponent(name)}`,
+  });
 }
 
 export default async function StackPage(

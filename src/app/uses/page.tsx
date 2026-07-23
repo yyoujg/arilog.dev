@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Uses",
   description: "아리가 사용하는 도구와 장비.",
-};
+  path: "/uses",
+});
 
 export default function UsesPage() {
   return (

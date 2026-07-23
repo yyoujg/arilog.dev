@@ -48,7 +48,7 @@ export function MobileNav() {
                 onClick={() => setOpen(false)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-base font-medium transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-base font-semibold transition-colors",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >

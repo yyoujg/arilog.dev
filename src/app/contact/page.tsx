@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Contact",
   description: "연락처.",
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

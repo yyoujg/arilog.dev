@@ -1,19 +1,21 @@
 # 폰트 파일
 
-이 디렉터리에 **`PretendardVariable.woff2`** 를 넣어야 한다.
+Pretendard (OFL-1.1, `LICENSE.txt`).
 
-- 출처: Pretendard 공식 배포 (https://github.com/orioncactus/pretendard/releases)
-  - `packages/pretendard/dist/web/variable/woff2/PretendardVariable.woff2`
-- 파일명 그대로 `src/assets/fonts/PretendardVariable.woff2` 로 저장.
+## 본문 (next/font/local, `src/lib/fonts.ts`)
 
-## 활성화 방법
+지원 웨이트 **400 / 600 / 700**. 서브셋 woff2:
 
-파일을 넣은 뒤 `src/app/layout.tsx` 에서 2줄만 주석 해제한다:
+- `Pretendard-Regular.subset.woff2` (400)
+- `Pretendard-SemiBold.subset.woff2` (600)
+- `Pretendard-Bold.subset.woff2` (700)
 
-```ts
-import { pretendard } from "@/lib/fonts";
-// ...
-<html lang="ko" suppressHydrationWarning className={pretendard.variable}>
-```
+`font-medium`(500)·`font-light`(300)은 쓰지 않는다(한글 육안 무구분 + 각 261K).
+자세한 규칙은 루트 `CLAUDE.md`의 "폰트 웨이트" 참고.
 
-(현재는 파일이 없어 빌드가 깨지지 않도록 system-ui fallback으로 동작한다.)
+## OG 이미지 (`src/lib/og.tsx`)
+
+satori는 woff2 미지원 → OTF 사용. 전체 글리프 파일을 두고 `subset-font`가
+빌드타임에 제목별로 서브셋한다.
+
+- `Pretendard-Regular.otf`, `Pretendard-Bold.otf`

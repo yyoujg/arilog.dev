@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 
 import { getAllProjects, getAllStacks } from "@/lib/projects";
+import { buildMetadata } from "@/lib/seo";
 import { Container } from "@/components/layout/container";
 import { ProjectCard } from "@/components/project/project-card";
 import { StackFilter } from "@/components/project/stack-filter";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Projects",
   description: "아리가 만든 프로젝트 모음.",
-};
+  path: "/projects",
+});
 
 export default function ProjectsPage() {
   const projects = getAllProjects();

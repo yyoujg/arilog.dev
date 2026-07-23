@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 // Slot(asChild)을 쓰지 않아 서버 컴포넌트에서 안전하다.
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold",
   {
     variants: {
       variant: {
