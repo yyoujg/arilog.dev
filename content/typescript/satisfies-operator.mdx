@@ -1,0 +1,76 @@
+---
+title: satisfies로 타입 넓힘 막기
+description: satisfies 연산자가 리터럴 타입을 보존하면서 타입 적합성을 검사하는 원리를 정리한다.
+date: 2026-07-15
+category: TypeScript
+tags:
+  - TypeScript
+  - 타입시스템
+draft: false
+---
+
+TypeScript 4.9에서 추가된 `satisfies`는 값이 특정 타입에 **적합한지 검사**하되,
+값의 **좁은(리터럴) 타입은 그대로 보존**하는 연산자다.
+
+## 문제: 타입 애노테이션은 값을 넓힌다
+
+타입을 애노테이션으로 붙이면 값이 그 타입으로 넓혀져, 원래 알고 있던 구체적인
+정보가 사라진다.
+
+```ts title="colors.ts" {5}
+type RGB = [number, number, number];
+type Color = RGB | string;
+
+// 애노테이션은 값을 Record<string, Color>로 넓힌다.
+const palette: Record<string, Color> = {
+  primary: [99, 102, 241],
+  danger: "#ef4444",
+};
+
+// palette.primary는 Color로 넓혀져 튜플 메서드를 잃는다.
+palette.primary.map((c) => c); // 오류: string에는 map이 없음
+```
+
+## satisfies의 동작
+
+`satisfies`는 검사만 하고 넓히지 않는다. 그래서 각 프로퍼티의 구체적 타입이
+살아 있다.
+
+```ts title="colors.ts" {4,8-9}
+const palette = {
+  primary: [99, 102, 241],
+  danger: "#ef4444",
+} satisfies Record<string, Color>;
+
+// primary는 number[]로 추론돼 배열 메서드를 그대로 쓸 수 있다.
+palette.primary.map((c) => c * 2);
+// danger는 string으로 추론된다.
+palette.danger.toUpperCase();
+```
+
+### 오타도 잡아준다
+
+<Callout type="info">
+  `satisfies`는 적합성 검사를 하므로, 허용되지 않는 값을 넣으면 컴파일 오류가
+  난다. 타입 안전성은 유지하면서 추론만 좁게 가져가는 셈이다.
+</Callout>
+
+## as 단언과 무엇이 다른가
+
+`as`는 컴파일러에게 타입을 **강제**한다. 틀려도 통과할 수 있어 위험하다.
+`satisfies`는 강제하지 않고 **검증**한다.
+
+| 연산자      | 적합성 검사 | 타입 보존 | 안전성 |
+| ----------- | ----------- | --------- | ------ |
+| 애노테이션  | O           | 넓힘      | O      |
+| `as`        | X           | 단언      | 낮음   |
+| `satisfies` | O           | 보존      | O      |
+
+![애노테이션, as, satisfies의 타입 흐름 비교](/images/sample-diagram.png "satisfies는 검사와 보존을 동시에 만족한다")
+
+## 정리
+
+- `satisfies`는 값을 넓히지 않고 타입 적합성만 검사한다.
+- 구체적 타입이 필요한 설정 객체·팔레트·라우트 맵에 특히 유용하다.
+
+배경은 [TypeScript 4.9 릴리스 노트](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html)에 정리돼 있다.

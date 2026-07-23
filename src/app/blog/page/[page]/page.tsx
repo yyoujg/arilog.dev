@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { getAllPosts, getAllCategories } from "@/lib/mdx";
 import { POSTS_PER_PAGE } from "@/constants/blog";
@@ -7,16 +8,39 @@ import { PostCard } from "@/components/blog/post-card";
 import { CategoryFilter } from "@/components/blog/category-filter";
 import { Pagination } from "@/components/blog/pagination";
 
+function totalPages(): number {
+  return Math.ceil(getAllPosts().length / POSTS_PER_PAGE);
+}
+
+// 2페이지부터만 정적 생성. 1페이지는 /blog로 리다이렉트.
+export function generateStaticParams() {
+  const total = totalPages();
+  return Array.from({ length: Math.max(0, total - 1) }, (_, i) => ({
+    page: String(i + 2),
+  }));
+}
+
 export const metadata: Metadata = {
   title: "Blog",
   description: "프론트엔드 기술 블로그 글 목록.",
 };
 
-export default function BlogPage() {
+export default async function BlogPagedPage(
+  props: PageProps<"/blog/page/[page]">,
+) {
+  const { page } = await props.params;
+  const pageNum = Number(page);
+
+  // page 1은 next.config redirects()에서 308로 /blog로 넘긴다.
+  if (!Number.isInteger(pageNum) || pageNum < 2) notFound();
+
   const posts = getAllPosts();
+  const total = totalPages();
+  if (pageNum > total) notFound();
+
   const categories = getAllCategories();
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
-  const pagePosts = posts.slice(0, POSTS_PER_PAGE);
+  const start = (pageNum - 1) * POSTS_PER_PAGE;
+  const pagePosts = posts.slice(start, start + POSTS_PER_PAGE);
 
   return (
     <Container className="py-12">
@@ -29,7 +53,7 @@ export default function BlogPage() {
           <PostCard key={post.slug} post={post} />
         ))}
       </div>
-      <Pagination currentPage={1} totalPages={totalPages} />
+      <Pagination currentPage={pageNum} totalPages={total} />
     </Container>
   );
 }

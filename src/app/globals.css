@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -152,4 +153,89 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+/* MDX 본문 타이포그래피 — @tailwindcss/typography(prose) 위에 토큰을 바인딩한다.
+   prose-invert를 쓰지 않고, .dark에서는 아래 CSS 변수 토큰만 바뀌게 한다. */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--muted-foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--code-bg);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+
+  /* 한글 본문: 어절 단위 줄바꿈. line-height는 Pretendard 기준 잠정값(확인 후 조정). */
+  word-break: keep-all;
+  line-height: 1.8;
+}
+
+/* autolink-headings가 감싼 heading 내부 앵커는 링크 스타일 제외 */
+.prose :is(h1, h2, h3, h4, h5, h6) a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+}
+
+/* 인라인 code: 백틱 의사요소 제거 + code-bg 토큰 */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+.prose :not(pre) > code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 400;
+  font-size: 0.875em;
+}
+
+/* Shiki 듀얼 테마: 색상은 CSS 변수로, 배경은 컨테이너(code-bg) 사용 */
+.shiki {
+  margin: 0;
+  padding: 1rem 0;
+  background: transparent !important;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+}
+.shiki .line {
+  display: block;
+  padding: 0 1rem;
+}
+.shiki .line--highlighted {
+  background: var(--muted);
+  border-left: 2px solid var(--primary);
+  padding-left: calc(1rem - 2px);
+}
+/* 줄번호 */
+.shiki.line-numbers {
+  counter-reset: line;
+}
+.shiki.line-numbers .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  color: var(--muted-foreground);
 }

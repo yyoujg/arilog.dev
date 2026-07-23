@@ -1,0 +1,78 @@
+---
+title: React 19 use API 파헤치기
+description: 프라미스와 컨텍스트를 읽는 새 use API의 동작과 기존 훅과의 차이를 정리한다.
+date: 2026-06-18
+category: React
+tags:
+  - React
+  - React 19
+  - Suspense
+thumbnail: /images/sample-diagram.png
+series: React 19 톺아보기
+draft: false
+---
+
+React 19에서 추가된 `use`는 프라미스나 컨텍스트 같은 **리소스를 읽는** API다.
+이름은 훅처럼 보이지만, 호출 규칙이 기존 훅과 다르다.
+
+## use가 읽을 수 있는 것
+
+`use`는 두 종류의 리소스를 인자로 받는다.
+
+### 프라미스 읽기
+
+컴포넌트에서 프라미스를 `use`로 읽으면, 프라미스가 해결될 때까지 컴포넌트가
+**서스펜드**된다. 가장 가까운 `<Suspense>` 경계의 fallback이 대신 렌더된다.
+
+```tsx title="app/comments.tsx" {6} showLineNumbers
+import { use } from "react";
+
+function Comments({ commentsPromise }: { commentsPromise: Promise<string[]> }) {
+  // commentsPromise가 해결될 때까지 이 컴포넌트는 서스펜드된다.
+  const comments = use(commentsPromise);
+  return comments.map((c) => <p key={c}>{c}</p>);
+}
+```
+
+<Callout type="warn">
+  클라이언트 컴포넌트에서 렌더 중에 프라미스를 새로 만들어 `use`에 넘기면 매
+  렌더마다 다른 프라미스가 생겨 무한 서스펜드에 빠질 수 있다. 프라미스는 서버
+  컴포넌트에서 만들어 props로 내려주는 패턴이 안전하다.
+</Callout>
+
+### 컨텍스트 읽기
+
+`use(Context)`는 `useContext(Context)`와 같은 값을 반환한다. 차이는 호출
+위치의 자유도다.
+
+## useContext와 무엇이 다른가
+
+기존 훅은 컴포넌트 최상단에서만, 조건 없이 호출해야 한다. `use`는 이 규칙에서
+자유롭다. **조건문이나 반복문 안에서도** 호출할 수 있다.
+
+```tsx title="theme-aware.tsx" {4-6}
+function Panel({ enabled }: { enabled: boolean }) {
+  if (enabled) {
+    // 조건 분기 안에서 컨텍스트를 읽어도 된다. useContext는 불가능한 패턴.
+    const theme = use(ThemeContext);
+    return <div className={theme}>on</div>;
+  }
+  return <div>off</div>;
+}
+```
+
+| 항목           | useContext | use  |
+| -------------- | ---------- | ---- |
+| 조건부 호출    | 불가       | 가능 |
+| 프라미스 읽기  | 불가       | 가능 |
+| 반환 위치 제약 | 최상단     | 자유 |
+
+![use API가 Suspense 경계와 상호작용하는 흐름](/images/sample-diagram.png "use로 읽은 프라미스는 가장 가까운 Suspense 경계에서 처리된다")
+
+## 정리
+
+- `use`는 프라미스와 컨텍스트를 읽는 통합 API다.
+- 훅과 달리 조건·반복 안에서 호출할 수 있다.
+- 프라미스는 서버에서 만들어 내려주는 흐름이 권장된다.
+
+더 깊은 규칙은 [React 공식 문서의 use 레퍼런스](https://react.dev/reference/react/use)에서 확인할 수 있다.

@@ -1,0 +1,67 @@
+---
+title: 서버 컴포넌트의 경계 이해하기
+description: RSC에서 서버 컴포넌트와 클라이언트 컴포넌트가 나뉘는 기준과 use client의 역할을 정리한다.
+date: 2026-07-02
+category: React
+tags:
+  - React
+  - RSC
+  - Next.js
+series: React 19 톺아보기
+draft: false
+---
+
+React Server Components(RSC)에서는 컴포넌트가 **서버에서만 실행되는 것**과
+**클라이언트로 전송되는 것**으로 나뉜다. 이 경계를 이해하는 것이 RSC의 핵심이다.
+
+## 기본값은 서버 컴포넌트
+
+App Router에서 컴포넌트는 별도 표시가 없으면 서버 컴포넌트다. 서버 컴포넌트는
+빌드/요청 시점에 서버에서 실행되고, 그 결과만 클라이언트로 전송된다.
+
+### 서버 컴포넌트가 할 수 있는 것
+
+- `async` 함수로 선언해 직접 `await` 사용
+- 파일 시스템, 데이터베이스 등 서버 자원 접근
+
+```tsx title="app/posts/page.tsx" {1,4}
+export default async function Page() {
+  // 서버에서 실행되므로 DB를 직접 조회해도 된다.
+  const posts = await db.post.findMany();
+  return <PostList posts={posts} />;
+}
+```
+
+### 서버 컴포넌트가 할 수 없는 것
+
+`useState`, `useEffect` 같은 상태·이펙트 훅과 브라우저 이벤트 핸들러는 서버
+컴포넌트에서 쓸 수 없다. 이들이 필요하면 클라이언트 컴포넌트로 내려야 한다.
+
+## use client의 역할
+
+`"use client"`는 **경계를 여는 지시자**다. 이 파일과 여기서 import하는
+모듈들이 클라이언트 번들에 포함된다.
+
+<Callout type="tip">
+  경계는 트리 최하단에 두는 게 좋다. 상호작용이 필요한 작은 조각에만 `"use
+  client"`를 붙이면, 나머지는 서버 컴포넌트로 유지돼 전송량이 줄어든다.
+</Callout>
+
+한 가지 함정: `"use client"`가 없는 모듈이 `createContext`처럼 클라이언트
+전용 API를 모듈 최상단에서 호출하면, 서버 컴포넌트 그래프에서 평가될 때 깨진다.
+
+| 기능               | 서버 컴포넌트 | 클라이언트 컴포넌트 |
+| ------------------ | ------------- | ------------------- |
+| async/await        | 가능          | 제한적              |
+| useState/useEffect | 불가          | 가능                |
+| 이벤트 핸들러      | 불가          | 가능                |
+| 서버 자원 접근     | 가능          | 불가                |
+
+![서버 컴포넌트와 클라이언트 컴포넌트 경계 다이어그램](/images/sample-diagram.png "use client 경계 아래만 클라이언트 번들에 포함된다")
+
+## 정리
+
+- 기본값은 서버 컴포넌트, 상호작용이 필요할 때만 클라이언트로 내린다.
+- 경계는 최하단에 두어 전송량을 최소화한다.
+
+자세한 모델은 [React 서버 컴포넌트 문서](https://react.dev/reference/rsc/server-components)를 참고하자.
