@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ari.dev ([arilog.dev](https://arilog.dev))
 
-## Getting Started
+3년차 프론트엔드 개발자의 기술 블로그 겸 포트폴리오.
 
-First, run the development server:
+## 스택
+
+- **Next.js 16** (App Router, Turbopack)
+- **React 19.2** / **TypeScript** (strict)
+- **TailwindCSS v4** + **shadcn/ui**
+- **next-themes** (system / light / dark)
+- **Pretendard** (`next/font/local`)
+- 배포: **Vercel**
+
+## 명령어
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev          # 개발 서버
+npm run build        # 프로덕션 빌드
+npm run start        # 프로덕션 실행
+npm run lint         # ESLint
+npm run typecheck    # tsc --noEmit
+npm run format       # Prettier 포맷팅
+npm run format:check # Prettier 검사
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 폴더 구조
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/          라우트
+  components/   common/ layout/ ui/ ...
+  lib/          유틸, 폰트
+  constants/    사이트 메타, 네비
+  styles/       (예정)
+  assets/fonts/ Pretendard woff2 (README 참고)
+content/        MDX 콘텐츠 (Sprint 2~)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 폰트 설정
 
-## Learn More
+`src/assets/fonts/README.md` 참고. `PretendardVariable.woff2` 를 넣고 `layout.tsx` 2줄을 활성화한다.
 
-To learn more about Next.js, take a look at the following resources:
+## 개발 규칙
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+프로젝트 규칙은 [`CLAUDE.md`](./CLAUDE.md) 를 따른다.
