@@ -1,8 +1,11 @@
 // 빌드타임 MDX 린트. next-mdx-remote(blockJS:true)가 JS 표현식을 조용히
 // 삭제하므로, 작성자가 표현식/import/export를 쓰면 사전에 잡아준다.
 // - JSX 표현식 속성(prop={...}), 본문 표현식({...}), import/export 를 에러로
-// - 코드블록(펜스)·인라인 코드는 검사 제외 (오탐 방지)
+// - 코드블록(펜스)·인라인 코드는 검사 제외 (오탐 방지) — 이미지 검증과 동일한
+//   maskCodeRegions로 코드 영역 판정을 공유한다.
 // - 이미지 검증과 동일: dev warn / prod 집계 후 빌드 실패
+
+import { maskCodeRegions } from "@/lib/mdx-code-mask";
 
 export interface MdxSource {
   file: string; // MDX 파일 경로
@@ -16,37 +19,31 @@ interface LintIssue {
   message: string;
 }
 
-const FENCE = /^\s*(`{3,}|~{3,})/;
-
-function stripInlineCode(line: string): string {
-  return line.replace(/`[^`]*`/g, (m) => " ".repeat(m.length));
+// frontmatter(선두 --- ... ---) 영역을 라인 수를 유지한 채 공백 처리한다.
+// 본문 첫 줄이 우연히 --- 인 경우(수평선)와 구분하려고 선두 블록만 다룬다.
+function blankFrontmatter(raw: string): string {
+  const lines = raw.split("\n");
+  if (lines[0]?.trim() !== "---") return raw;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === "---") {
+      for (let j = 0; j <= i; j++) lines[j] = "";
+      break;
+    }
+  }
+  return lines.join("\n");
 }
 
 function lintOne(file: string, raw: string): LintIssue[] {
   const issues: LintIssue[] = [];
-  const lines = raw.split("\n");
+  const rawLines = raw.split("\n");
+  // frontmatter 제거 후 코드 영역 마스킹 — 두 단계 모두 라인 수를 보존하므로
+  // scan[i]는 rawLines[i]와 정확히 대응한다(리포트는 원문 rawLines[i]로).
+  const scan = maskCodeRegions(blankFrontmatter(raw)).split("\n");
 
-  let inFrontmatter = lines[0]?.trim() === "---";
-  let inFence = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
+  for (let i = 0; i < scan.length; i++) {
+    const rawLine = rawLines[i];
     const lineNo = i + 1;
-
-    // frontmatter 블록 스킵
-    if (inFrontmatter) {
-      if (i > 0 && rawLine.trim() === "---") inFrontmatter = false;
-      continue;
-    }
-
-    // 코드펜스 토글 (구분선 자체도 검사 제외 — 펜스 meta의 {1,3} 오탐 방지)
-    if (FENCE.test(rawLine)) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-
-    const line = stripInlineCode(rawLine);
+    const line = scan[i];
 
     if (/^\s*(import|export)\b/.test(line)) {
       issues.push({

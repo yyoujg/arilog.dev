@@ -1,4 +1,5 @@
 import { inspectImage } from "@/lib/image-size";
+import { maskCodeRegions } from "@/lib/mdx-code-mask";
 
 export interface ImageRef {
   file: string; // MDX 파일 경로 (예: react/use-memo.mdx)
@@ -6,11 +7,14 @@ export interface ImageRef {
 }
 
 // 본문 마크다운 이미지 ![alt](src "title") 의 src 추출.
+// 코드펜스·인라인 코드 안의 이미지 문법은 예시 텍스트이지 렌더되는 이미지가
+// 아니므로, lint-mdx와 동일한 maskCodeRegions로 코드 영역을 제외한 뒤 스캔한다.
 export function extractImageSrcs(content: string): string[] {
   const srcs: string[] = [];
   const re = /!\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)[^)]*\)/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(content)) !== null) {
+  const masked = maskCodeRegions(content);
+  while ((m = re.exec(masked)) !== null) {
     srcs.push(m[1].replace(/^<|>$/g, ""));
   }
   return srcs;
