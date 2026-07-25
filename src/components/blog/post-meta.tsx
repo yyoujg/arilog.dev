@@ -24,7 +24,7 @@ export function PostMeta({
     >
       <time dateTime={date}>{date.replace(/-/g, ".")}</time>
       <span aria-hidden>·</span>
-      <span>{readingTime}분</span>
+      <span>{readingTime}분 읽기</span>
       {category && (
         <>
           <span aria-hidden>·</span>
