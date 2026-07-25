@@ -23,7 +23,6 @@ export const pretendard = localFont({
     },
   ],
   variable: "--font-pretendard",
-  preload: false,
   display: "swap",
   adjustFontFallback: "Arial",
   fallback: [
