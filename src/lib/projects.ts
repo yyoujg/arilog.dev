@@ -10,6 +10,7 @@ import { validateImages, extractImageSrcs } from "@/lib/validate-images";
 import { lintMdx } from "@/lib/lint-mdx";
 
 const PROJECTS_DIR = path.join(process.cwd(), "content", "projects");
+const isProd = process.env.NODE_ENV === "production";
 
 // /projects 아래 정적 자식 세그먼트. 프로젝트 slug로 쓰이면 라우트가 충돌하므로
 // 예약어로 강제한다(빌드 실패). 세그먼트를 추가하면 여기에도 반영한다.
@@ -40,14 +41,17 @@ function loadProjects(): Project[] {
       };
     });
 
-  const projects = entries
+  // draft는 production 빌드에서 제외 (블로그 글과 동일 규칙).
+  const published = entries.filter((e) => !(isProd && e.project.draft));
+
+  const projects = published
     .map((e) => e.project)
     .sort((a, b) => a.order - b.order);
 
   // 블로그와 동일한 MDX 린트 + 이미지 검증을 프로젝트에도 적용.
-  lintMdx(entries.map((e) => ({ file: e.relative, raw: e.raw })));
+  lintMdx(published.map((e) => ({ file: e.relative, raw: e.raw })));
   validateImages(
-    entries.flatMap((e) => {
+    published.flatMap((e) => {
       const srcs = extractImageSrcs(e.project.content);
       srcs.push(e.project.thumbnail);
       return srcs.map((src) => ({ file: e.relative, src }));

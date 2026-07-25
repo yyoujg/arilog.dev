@@ -6,6 +6,4 @@ export const SITE = {
   author: "Ari",
   email: "andn1026@gmail.com",
   github: "https://github.com/yyoujg",
-  // TODO: 실제 LinkedIn 프로필 URL로 교체
-  linkedin: "https://www.linkedin.com/",
 } as const;

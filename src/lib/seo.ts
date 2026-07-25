@@ -55,7 +55,7 @@ export function personLd(): Record<string, unknown> {
     "@id": PERSON_ID,
     name: SITE.author,
     url: env.SITE_URL,
-    sameAs: [SITE.github, SITE.linkedin],
+    sameAs: [SITE.github],
   };
 }
 

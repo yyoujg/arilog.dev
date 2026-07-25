@@ -120,47 +120,53 @@ export default function ResumePage() {
           </div>
         </section>
 
-        <section>
-          <SectionTitle>교육</SectionTitle>
-          <div className="space-y-4">
-            {RESUME.education.map((edu, i) => (
-              <div
-                key={i}
-                className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
-              >
-                <div>
-                  <h3 className="font-semibold">{edu.school}</h3>
-                  <p className="text-muted-foreground text-sm">{edu.degree}</p>
-                </div>
-                <span className="text-muted-foreground text-sm">
-                  {edu.period}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <SectionTitle>자격증</SectionTitle>
-          <ul className="space-y-2">
-            {RESUME.certifications.map((cert, i) => (
-              <li
-                key={i}
-                className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
-              >
-                <span className="font-semibold">
-                  {cert.name}{" "}
-                  <span className="text-muted-foreground font-normal">
-                    · {cert.issuer}
+        {RESUME.education.length > 0 && (
+          <section>
+            <SectionTitle>교육</SectionTitle>
+            <div className="space-y-4">
+              {RESUME.education.map((edu, i) => (
+                <div
+                  key={i}
+                  className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
+                >
+                  <div>
+                    <h3 className="font-semibold">{edu.school}</h3>
+                    <p className="text-muted-foreground text-sm">
+                      {edu.degree}
+                    </p>
+                  </div>
+                  <span className="text-muted-foreground text-sm">
+                    {edu.period}
                   </span>
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  {cert.date}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {RESUME.certifications.length > 0 && (
+          <section>
+            <SectionTitle>자격증</SectionTitle>
+            <ul className="space-y-2">
+              {RESUME.certifications.map((cert, i) => (
+                <li
+                  key={i}
+                  className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
+                >
+                  <span className="font-semibold">
+                    {cert.name}{" "}
+                    <span className="text-muted-foreground font-normal">
+                      · {cert.issuer}
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    {cert.date}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </Container>
   );

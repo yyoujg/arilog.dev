@@ -14,6 +14,7 @@ const projectSchema = z.object({
   demo: z.string().url().optional(),
   thumbnail: z.string().min(1),
   featured: z.boolean(),
+  draft: z.boolean(),
   order: z.number(),
 });
 

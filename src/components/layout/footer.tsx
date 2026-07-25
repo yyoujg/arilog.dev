@@ -1,8 +1,8 @@
 import { SITE } from "@/constants/site";
 import { Container } from "@/components/layout/container";
-import { GithubIcon, LinkedinIcon } from "@/components/common/brand-icons";
+import { GithubIcon } from "@/components/common/brand-icons";
 
-// Mail/RSS는 브랜드 아이콘이 아니라 여기 인라인으로 둔다(GitHub/LinkedIn은 공용).
+// Mail/RSS는 브랜드 아이콘이 아니라 여기 인라인으로 둔다(GitHub는 공용).
 function MailIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg
@@ -43,7 +43,6 @@ function RssIcon(props: React.ComponentProps<"svg">) {
 export function Footer() {
   const links = [
     { href: SITE.github, label: "GitHub", Icon: GithubIcon },
-    { href: SITE.linkedin, label: "LinkedIn", Icon: LinkedinIcon },
     { href: `mailto:${SITE.email}`, label: "Email", Icon: MailIcon },
     { href: "/rss.xml", label: "RSS", Icon: RssIcon },
   ];

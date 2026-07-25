@@ -8,6 +8,7 @@ export interface ProjectFrontmatter {
   demo?: string;
   thumbnail: string;
   featured: boolean;
+  draft: boolean;
   order: number; // 오름차순 정렬 기준
 }
 
