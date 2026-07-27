@@ -2,11 +2,12 @@
 
 import { PrinterIcon } from "lucide-react";
 
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 
 export function ResumePrintButton() {
   function handlePrint() {
-    // TODO: Sprint 4에서 GA4 이벤트 전송 (event name: resume_print)
+    track("resume_print");
     window.print();
   }
 

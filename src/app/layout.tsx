@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
+import { GoogleAnalytics } from "@next/third-parties/google";
+
 import "./globals.css";
 import { pretendard } from "@/lib/fonts";
 import { env } from "@/lib/env";
+import { clientEnv } from "@/lib/env.client";
 import { SITE } from "@/constants/site";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { ExternalLinkTracker } from "@/components/common/external-link-tracker";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
@@ -41,7 +45,12 @@ export default function RootLayout({
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <ExternalLinkTracker />
         </ThemeProvider>
+        {/* GA4는 production + ID 존재 시에만. next/script afterInteractive라 LCP 비차단. */}
+        {clientEnv.gaId && process.env.NODE_ENV === "production" && (
+          <GoogleAnalytics gaId={clientEnv.gaId} />
+        )}
       </body>
     </html>
   );
