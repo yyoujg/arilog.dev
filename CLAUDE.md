@@ -9,22 +9,22 @@ Repo: https://github.com/yyoujg/arilog.dev
 
 ## 스택 (확정 — 변경이 필요하면 먼저 물어볼 것)
 
-| 분야          | 기술                                        |
-| ------------- | ------------------------------------------- |
-| Framework     | Next.js 16 App Router                       |
-| React         | 19                                          |
-| Language      | TypeScript (strict)                         |
-| 번들러        | Turbopack (기본값)                          |
-| 패키지 매니저 | **npm**                                     |
-| 스타일        | **TailwindCSS v4** + shadcn/ui (new-york)   |
-| 포맷터        | Prettier + prettier-plugin-tailwindcss      |
-| 콘텐츠        | MDX — `gray-matter` + `next-mdx-remote/rsc` |
-| 하이라이트    | Shiki                                       |
-| 폰트          | Pretendard (`next/font/local`)              |
-| 검색          | 빌드타임 `search-index.json` + FlexSearch   |
-| 댓글          | Giscus                                      |
-| 분석          | GA4 (`@next/third-parties`)                 |
-| 배포          | Vercel                                      |
+| 분야          | 기술                                          |
+| ------------- | --------------------------------------------- |
+| Framework     | Next.js 16 App Router                         |
+| React         | 19                                            |
+| Language      | TypeScript (strict)                           |
+| 번들러        | Turbopack (기본값)                            |
+| 패키지 매니저 | **npm**                                       |
+| 스타일        | **TailwindCSS v4** + shadcn/ui (new-york)     |
+| 포맷터        | Prettier + prettier-plugin-tailwindcss        |
+| 콘텐츠        | MDX — `gray-matter` + `next-mdx-remote/rsc`   |
+| 하이라이트    | Shiki                                         |
+| 폰트          | Pretendard (`next/font/local`)                |
+| 검색          | 빌드타임 `search-index.json` + substring 필터 |
+| 댓글          | Giscus                                        |
+| 분석          | GA4 (`@next/third-parties`)                   |
+| 배포          | Vercel                                        |
 
 ### 쓰지 않는 것
 
