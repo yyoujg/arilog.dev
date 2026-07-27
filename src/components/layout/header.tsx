@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SearchIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/constants/nav";
 import { SITE } from "@/constants/site";
-import { Button } from "@/components/ui/button";
 import { Container } from "@/components/layout/container";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { SearchDialog } from "@/components/layout/search-dialog";
 
 export function Header() {
   const pathname = usePathname();
@@ -43,14 +42,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="검색 (준비 중)"
-            disabled
-          >
-            <SearchIcon className="size-5" />
-          </Button>
+          <SearchDialog />
           <ThemeToggle />
           <MobileNav />
         </div>

@@ -32,3 +32,14 @@ export interface CountItem {
   name: string;
   count: number;
 }
+
+// public/search-index.json 한 항목. scripts/build-search-index.ts가 생성.
+export interface SearchDoc {
+  slug: string;
+  url: string;
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  body: string;
+}
