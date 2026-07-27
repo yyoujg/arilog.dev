@@ -10,6 +10,7 @@ import { PostMeta } from "@/components/blog/post-meta";
 import { PostNav } from "@/components/blog/post-nav";
 import { Toc } from "@/components/blog/toc";
 import { MdxRenderer } from "@/components/blog/mdx-renderer";
+import { Comments } from "@/components/blog/comments";
 import { JsonLd } from "@/components/seo/json-ld";
 
 // 글은 정확히 <카테고리>/<파일> 2단계(loadPosts에서 검증). slug는 "cat/file".
@@ -94,6 +95,7 @@ export default async function PostPage(
           </div>
 
           <PostNav prev={prev} next={next} />
+          <Comments />
         </article>
       </div>
     </Container>
