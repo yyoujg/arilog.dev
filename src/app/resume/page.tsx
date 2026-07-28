@@ -25,6 +25,18 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function ResumePage() {
   const projects = getAllProjects();
 
+  const experienceGroups = RESUME.experience.reduce<
+    { company: string; items: typeof RESUME.experience }[]
+  >((groups, exp) => {
+    const last = groups[groups.length - 1];
+    if (last?.company === exp.company) {
+      last.items.push(exp);
+    } else {
+      groups.push({ company: exp.company, items: [exp] });
+    }
+    return groups;
+  }, []);
+
   return (
     <Container className="resume-root max-w-3xl py-12">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -75,21 +87,29 @@ export default function ResumePage() {
 
         <section>
           <SectionTitle>경력</SectionTitle>
-          <div className="space-y-6">
-            {RESUME.experience.map((exp, i) => (
-              <div key={i} className="break-inside-avoid">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <h3 className="font-semibold">{exp.company}</h3>
-                  <span className="text-muted-foreground text-sm">
-                    {exp.period}
-                  </span>
-                </div>
-                <p className="text-muted-foreground text-sm">{exp.role}</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                  {exp.description.map((d, j) => (
-                    <li key={j}>{d}</li>
+          <div className="space-y-8">
+            {experienceGroups.map((group, gi) => (
+              <div key={gi}>
+                <h3 className="break-after-avoid font-semibold">
+                  {group.company}
+                </h3>
+                <div className="border-border mt-3 space-y-5 border-l pl-4">
+                  {group.items.map((exp, i) => (
+                    <div key={i} className="break-inside-avoid">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                        <p className="text-sm">{exp.role}</p>
+                        <span className="text-muted-foreground text-sm">
+                          {exp.period}
+                        </span>
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {exp.description.map((d, j) => (
+                          <li key={j}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
