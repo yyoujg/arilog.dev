@@ -46,8 +46,8 @@ export function MdxImage({
 
   // 인라인 이미지: <p> 안에 텍스트와 함께 있으므로 figure를 쓰면 안 된다.
   if (!isBlock) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}
