@@ -121,5 +121,7 @@ test("스모크: 검색 모달 키보드 조작", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(dialog).toBeHidden();
-  expect(page.url(), "결과 선택 후 이동").not.toBe(before);
+  // 동기 page.url() 대신 auto-retry 단언: 콜드 CI에선 대상 라우트 컴파일 탓에
+  // 클라이언트 내비게이션이 지연돼 URL 갱신이 늦다(로컬 웜 캐시에선 즉시).
+  await expect(page, "결과 선택 후 이동").not.toHaveURL(before);
 });
