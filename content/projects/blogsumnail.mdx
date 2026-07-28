@@ -10,7 +10,7 @@ stack:
   - Tailwind CSS
   - html2canvas
 demo: https://blogsumnail.com
-thumbnail: /images/sample-diagram.png
+thumbnail: /images/projects/blogsumnail-thumbnail.png
 featured: true
 draft: false
 order: 2
@@ -34,6 +34,10 @@ order: 2
 - **문제**: 도구에서 만든 썸네일을 PNG로 저장하면 이미지 정중앙에 원치 않는 가로선이 렌더링됐다. 도구의 핵심 산출물이 손상되는 결함이었다.
 - **해결**: 스크롤 오프셋을 보정하고 `aspect-ratio`를 무력화해 캔버스 렌더링 좌표를 교정했다. 증상만 가리지 않고 캔버스 렌더 좌표라는 근본 원인까지 수정했다. 캡처에 쓰는 html2canvas는 npm 의존성으로 번들에 포함하지 않고, 초기 로드에 불필요한 무게를 더하지 않도록 CDN(v1.4.1)을 `afterInteractive`로 지연 로드한다.
 - **효과**: 도구의 핵심 산출물인 썸네일의 무결성을 확보했다.
+
+수정 후 도구에서 내보낸 실제 PNG 산출물이다. 하단 밴드를 전체 오버레이·그라데이션으로 렌더해 정중앙 가로선 없이 저장된다.
+
+![html2canvas 렌더링 결함 수정 후 - 정중앙 가로선 없이 정상 렌더된 썸네일 PNG 산출물](/images/projects/blogsumnail-html2canvas-after.png "수정 후: 가로선 없이 정상 저장된 PNG 산출물")
 
 ### 2. 이미지 페이로드 과다로 인한 LCP 부담
 
