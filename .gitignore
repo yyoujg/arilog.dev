@@ -43,3 +43,9 @@ docs/
 
 
 public/search-index.json
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
