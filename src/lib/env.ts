@@ -12,6 +12,23 @@ const schema = z.object({
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
   // Vercel 외 환경 대비 강제 색인 허용/차단 override.
   SITE_INDEXABLE: z.enum(["true", "false"]).optional(),
+
+  // --- admin CMS (GitHub OAuth + Octokit 커밋) ---
+  // 미설정이어도 build/CI는 통과해야 한다: /admin은 정적 생성되지 않고,
+  // 로그인/커밋 시점에만 실제로 필요하다.
+  NEXTAUTH_SECRET: z.string().optional(),
+  // GitHub OAuth App의 Client ID/Secret. GITHUB_TOKEN(커밋용 PAT)과는 별개 자격증명.
+  AUTH_GITHUB_ID: z.string().optional(),
+  AUTH_GITHUB_SECRET: z.string().optional(),
+  // signIn 콜백에서 profile.login과 비교해 이 계정만 허용.
+  ADMIN_GITHUB_USERNAME: z.string().optional(),
+  // fine-grained PAT, contents:write 권한만. Octokit 커밋에 사용.
+  GITHUB_TOKEN: z.string().optional(),
+  // "owner/repo" 형식. 커밋 대상 레포.
+  GITHUB_REPO: z
+    .string()
+    .regex(/^[^/\s]+\/[^/\s]+$/)
+    .optional(),
 });
 
 const result = schema.safeParse(process.env);
@@ -43,4 +60,10 @@ export const env = {
   SITE_URL: resolveSiteUrl(),
   IS_INDEXABLE: resolveIndexable(),
   VERCEL_ENV: parsed.VERCEL_ENV,
+  NEXTAUTH_SECRET: parsed.NEXTAUTH_SECRET,
+  AUTH_GITHUB_ID: parsed.AUTH_GITHUB_ID,
+  AUTH_GITHUB_SECRET: parsed.AUTH_GITHUB_SECRET,
+  ADMIN_GITHUB_USERNAME: parsed.ADMIN_GITHUB_USERNAME,
+  GITHUB_TOKEN: parsed.GITHUB_TOKEN,
+  GITHUB_REPO: parsed.GITHUB_REPO,
 } as const;

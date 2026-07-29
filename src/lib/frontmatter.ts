@@ -4,7 +4,7 @@ import type { Frontmatter } from "@/types/post";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-const frontmatterSchema = z.object({
+export const frontmatterSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   // YAML은 따옴표 없는 날짜를 Date로 파싱하므로 문자열로 정규화한다.
