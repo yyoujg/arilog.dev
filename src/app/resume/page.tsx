@@ -102,7 +102,9 @@ export default function ResumePage() {
                       </div>
                       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                         {exp.description.map((d, j) => (
-                          <li key={j}>{d}</li>
+                          <li key={j} className="break-words">
+                            {d}
+                          </li>
                         ))}
                       </ul>
                     </div>
