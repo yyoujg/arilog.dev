@@ -16,7 +16,7 @@ export const metadata: Metadata = buildMetadata({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="border-border mb-4 border-b pb-1 text-lg font-bold tracking-tight">
+    <h2 className="border-border mb-5 border-b pb-2 text-xl font-bold tracking-tight">
       {children}
     </h2>
   );
@@ -61,7 +61,7 @@ export default function ResumePage() {
         <ResumePrintButton />
       </header>
 
-      <div className="mt-10 space-y-10">
+      <div className="mt-12 space-y-14">
         <section>
           <SectionTitle>기술 스택</SectionTitle>
           <dl className="space-y-2">
@@ -90,14 +90,12 @@ export default function ResumePage() {
           <div className="space-y-8">
             {experienceGroups.map((group, gi) => (
               <div key={gi}>
-                <h3 className="break-after-avoid font-semibold">
-                  {group.company}
-                </h3>
-                <div className="border-border mt-3 space-y-5 border-l pl-4">
+                <h3 className="break-after-avoid font-bold">{group.company}</h3>
+                <div className="border-border mt-4 space-y-6 border-l pl-5">
                   {group.items.map((exp, i) => (
                     <div key={i} className="break-inside-avoid">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <p className="text-sm">{exp.role}</p>
+                        <p className="text-sm font-semibold">{exp.role}</p>
                         <span className="text-muted-foreground text-sm">
                           {exp.period}
                         </span>
@@ -121,7 +119,7 @@ export default function ResumePage() {
             {projects.map((p) => (
               <div key={p.slug} className="break-inside-avoid">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <h3 className="font-semibold">{p.title}</h3>
+                  <h3 className="font-bold">{p.title}</h3>
                   <span className="text-muted-foreground text-sm">
                     {p.period}
                   </span>
@@ -150,7 +148,7 @@ export default function ResumePage() {
                   className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
                 >
                   <div>
-                    <h3 className="font-semibold">{edu.school}</h3>
+                    <h3 className="font-bold">{edu.school}</h3>
                     <p className="text-muted-foreground text-sm">
                       {edu.degree}
                     </p>
@@ -173,7 +171,7 @@ export default function ResumePage() {
                   key={i}
                   className="flex break-inside-avoid flex-wrap items-baseline justify-between gap-x-3"
                 >
-                  <span className="font-semibold">
+                  <span className="font-bold">
                     {cert.name}{" "}
                     <span className="text-muted-foreground font-normal">
                       · {cert.issuer}
