@@ -51,7 +51,8 @@ const CAPABILITIES = [
   },
   {
     area: "AI 워크플로",
-    detail: "코드 생성 에이전트 하네스 (컴포넌트 생성·문서·번들측정 자동화)",
+    detail:
+      "OpenAI Codex 기반 코드 생성 에이전트 하네스 (컴포넌트 생성·문서·번들측정 자동화)",
   },
 ];
 
