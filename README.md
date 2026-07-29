@@ -73,23 +73,23 @@ TODO: 확인 필요 — 그 외 제작 동기(예: 특정 사이드 프로젝트
 
 `package.json` 기준.
 
-| 분야          | 기술                                                    |
-| ------------- | -------------------------------------------------------- |
-| Framework     | Next.js 16.2 (App Router, Turbopack)                    |
-| React         | 19.2                                                     |
-| Language      | TypeScript (strict)                                      |
-| 패키지 매니저 | npm                                                       |
-| 스타일        | TailwindCSS v4 + shadcn/ui (Radix 프리미티브)             |
-| 콘텐츠        | MDX — `gray-matter` + `next-mdx-remote`                  |
-| 하이라이트    | Shiki                                                     |
-| 검증          | zod (frontmatter, 환경변수)                               |
+| 분야          | 기술                                                       |
+| ------------- | ---------------------------------------------------------- |
+| Framework     | Next.js 16.2 (App Router, Turbopack)                       |
+| React         | 19.2                                                       |
+| Language      | TypeScript (strict)                                        |
+| 패키지 매니저 | npm                                                        |
+| 스타일        | TailwindCSS v4 + shadcn/ui (Radix 프리미티브)              |
+| 콘텐츠        | MDX — `gray-matter` + `next-mdx-remote`                    |
+| 하이라이트    | Shiki                                                      |
+| 검증          | zod (frontmatter, 환경변수)                                |
 | 폰트          | Pretendard (`next/font/local`), `subset-font`(OG 이미지용) |
-| 검색          | 빌드타임 인덱스 + substring 필터 (`cmdk` UI)              |
-| 댓글          | Giscus (`@giscus/react`)                                  |
-| 분석          | GA4 (`@next/third-parties`)                               |
-| RSS           | `feed`                                                    |
-| 테스트        | Playwright (`e2e/`)                                       |
-| CI            | GitHub Actions                                            |
+| 검색          | 빌드타임 인덱스 + substring 필터 (`cmdk` UI)               |
+| 댓글          | Giscus (`@giscus/react`)                                   |
+| 분석          | GA4 (`@next/third-parties`)                                |
+| RSS           | `feed`                                                     |
+| 테스트        | Playwright (`e2e/`)                                        |
+| CI            | GitHub Actions                                             |
 | 배포          | Vercel                                                     |
 
 ## 로컬 실행 방법
@@ -121,15 +121,15 @@ npm run test:e2e         # Playwright 스모크 테스트 (dev 서버 대상)
 `.env.example` 참고. 전부 optional이며, 값이 없으면 해당 기능만 조용히 꺼진다
 (빌드는 항상 통과한다).
 
-| 변수                             | 설명                                                                                        |
-| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| 변수                             | 설명                                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_SITE_URL`           | 사이트 절대 URL. canonical/OG/sitemap/RSS 기준. 미설정 시 Vercel 프로덕션 URL → localhost 순 |
 | `SITE_INDEXABLE`                 | 색인 허용 강제(`"true"`/`"false"`). 미설정 시 production 환경에서만 허용                     |
-| `NEXT_PUBLIC_GA_ID`               | GA4 Measurement ID                                                                             |
-| `NEXT_PUBLIC_GISCUS_REPO`         | Giscus 저장소 (`owner/repo`)                                                                   |
-| `NEXT_PUBLIC_GISCUS_REPO_ID`      | Giscus repo ID                                                                                 |
-| `NEXT_PUBLIC_GISCUS_CATEGORY`     | Giscus 카테고리                                                                                 |
-| `NEXT_PUBLIC_GISCUS_CATEGORY_ID`  | Giscus 카테고리 ID                                                                              |
+| `NEXT_PUBLIC_GA_ID`              | GA4 Measurement ID                                                                           |
+| `NEXT_PUBLIC_GISCUS_REPO`        | Giscus 저장소 (`owner/repo`)                                                                 |
+| `NEXT_PUBLIC_GISCUS_REPO_ID`     | Giscus repo ID                                                                               |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`    | Giscus 카테고리                                                                              |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID` | Giscus 카테고리 ID                                                                           |
 
 `VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL`은 Vercel이 자동 주입한다.
 
