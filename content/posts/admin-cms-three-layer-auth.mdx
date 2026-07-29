@@ -1,0 +1,106 @@
+---
+title: "미들웨어만 믿으면 안 된다 — DB 없는 블로그에 3겹 인증 admin 붙이기"
+description: next-auth v5 beta와 Octokit으로 DB 없이 '어디서나 글쓰기'를 만들면서, 미들웨어 한 겹으로 끝내지 않고 인증을 세 계층에 나눠 건 이야기.
+date: 2026-07-29
+category: Next.js
+tags:
+  - Next.js
+  - Auth.js
+  - 인증
+  - 아키텍처
+draft: false
+---
+
+## 왜 admin을 직접 만들었나
+
+이 블로그는 **DB가 없다.** 글은 전부 `content/posts/*.mdx` 파일이고, 그 파일이 곧 콘텐츠 소스다. 구조는 단순해서 좋지만 대가가 하나 있었다 — **글을 발행하려면 로컬에서 git 커밋을 해야 한다.** 노트북 앞이 아니면 오탈자 하나 못 고친다.
+
+"파일 없이, 브라우저에서 어디서나 글쓰기." 이 한 줄 요구를 풀려고 admin을 붙였다. DB를 새로 얹는 대신, **admin이 GitHub API로 레포에 직접 커밋**하게 했다. 발행 버튼을 누르면 Octokit(`@octokit/rest`)이 fine-grained PAT(`contents:write` 권한만)으로 `main` 브랜치의 mdx 파일을 커밋한다. 스토리지 추가 0개, 여전히 mdx가 소스다.
+
+그런데 이 설계에는 정직하게 마주해야 할 문제가 하나 있다. **admin은 결국 "공개 사이트에 쓰기 권한을 뚫는 문"이다.** 이 문의 인증이 뚫리면 남의 손이 내 블로그 레포에 커밋한다. 그래서 이 글의 진짜 주제는 CMS 기능이 아니라 **인증을 어디에, 몇 겹으로 거느냐**다.
+
+## 미들웨어 한 겹으로 끝내면 안 되는 이유
+
+Next.js에서 보호 경로를 만들라고 하면 대부분 middleware를 먼저 떠올린다. `/admin/*`에 미들웨어를 걸고 세션 없으면 리다이렉트. 깔끔해 보인다. 하지만 **미들웨어는 신뢰할 수 있는 보안 경계가 아니다.**
+
+교과서적 사례가 **CVE-2025-29927**이다. Next.js가 미들웨어 무한 재귀를 막으려고 쓰던 내부 헤더 `x-middleware-subrequest`를, 공격자가 직접 요청에 실어 보내면 **미들웨어 실행 자체를 건너뛸 수 있었던** 인증 우회 취약점이다. 미들웨어에만 인증을 걸어둔 앱은 그대로 뚫렸다. (패치: 12.3.5 / 13.5.9 / 14.2.25 / 15.2.3)
+
+> 짚어둘 것: **이 블로그는 Next 16.2.11이라 이 CVE의 영향권이 아니다.** 이걸 "막았다"고 말하려는 게 아니다. 요점은 다른 데 있다 — *특정 버전의 특정 버그와 무관하게, 미들웨어를 유일한 인증 지점으로 두는 설계 자체가 취약하다*는 것. 미들웨어는 "빠른 1차 거름망"이지 최종 방어선이 아니다. 그래서 인증을 한 겹이 아니라 세 겹에 나눠 걸었다.
+
+## 3겹 방어 실제 구조
+
+**Layer 1 — 미들웨어 게이트 (`proxy.ts`)**
+
+providers를 뺀 최소 설정(`authConfig`)으로 `/admin/:path*`를 가장 바깥에서 거른다. 대부분의 비인증 트래픽은 여기서 리다이렉트된다. 하지만 이건 UX용 1차 거름망일 뿐, 여기서 통과했다고 인증이 끝난 게 아니다.
+
+```ts
+// proxy.ts
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
+
+// 1차 방어. providers가 없는 authConfig만 써서 가볍게 유지한다.
+// 실제 계정 검증(2차: layout, 3차: server action)은 auth.ts에서 별도로 재확인한다.
+export default NextAuth(authConfig).auth;
+
+export const config = {
+  matcher: ["/admin/:path*"],
+};
+```
+
+**Layer 2 — 서버 컴포넌트 재검증 (`(protected)/layout.tsx`)**
+
+admin 화면을 감싸는 레이아웃(서버 컴포넌트)에서 `auth()`를 **다시** 호출한다. 세션이 있는지가 아니라, **그 세션의 GitHub login이 내 계정인지**까지 본다.
+
+```tsx
+// src/app/admin/(protected)/layout.tsx
+const session = await auth();
+if (!session?.user || session.user.login !== env.ADMIN_GITHUB_USERNAME) {
+  redirect("/admin/login"); // 로그인은 됐어도 '내가' 아니면 차단
+}
+```
+
+**Layer 3 — 서버 액션 시점 재검증 (`requireAdmin()`)**
+
+가장 중요한 겹. `createPost` · `updatePost` · `deletePost` · `renderPreviewAction` **각 서버 액션이 실행되는 바로 그 순간** `requireAdmin()`으로 세션을 또 확인한다. 화면 렌더링과 무관하게, **쓰기 동작 직전에 매번** 인증을 재확인한다는 뜻이다.
+
+```ts
+// src/lib/admin/actions.tsx
+async function requireAdmin(): Promise<void> {
+  const session = await auth();
+  if (!session?.user || session.user.login !== env.ADMIN_GITHUB_USERNAME) {
+    throw new Error("인증되지 않은 요청입니다");
+  }
+}
+
+export async function createPost(input: PostFormInput) {
+  await requireAdmin(); // 미들웨어를 우회당해도, 커밋 직전 여기서 다시 막힌다
+  // ... Octokit 커밋 (commitPost)
+}
+```
+
+세 겹의 핵심은 **"미들웨어를 우회해도 실제 쓰기 액션은 서버 액션 레벨에서 또 막힌다"**는 데 있다. 앞의 두 겹이 모두 뚫리는 상황을 가정해도, GitHub에 커밋을 일으키는 함수 자체가 자기 실행 시점에 인증을 재확인하기 때문에 무단 쓰기가 성립하지 않는다. 이게 defense-in-depth다 — 한 겹의 실패가 전체 붕괴로 이어지지 않게.
+
+## 최소 권한 원칙 두 가지
+
+방어는 인증 계층만이 아니다. **권한의 범위**도 좁혔다.
+
+첫째, **허용 계정은 GitHub 단일 화이트리스트.** `signIn` 콜백에서 `profile.login`을 `ADMIN_GITHUB_USERNAME`과 비교해, 내 계정이 아니면 아예 로그인 자체가 성립하지 않는다. GitHub OAuth로 "누구나 로그인은 되지만, 통과는 나만".
+
+둘째, **토큰 권한은 `contents:write` 하나뿐.** 커밋용 PAT를 fine-grained로 발급하고 필요한 레포의 contents 쓰기 외 모든 권한을 뺐다. 토큰이 유출돼도 할 수 있는 건 그 레포에 파일 커밋뿐 — issue, settings, 다른 레포는 손댈 수 없다.
+
+## 정직한 트레이드오프: beta 라이브러리를 프로덕션에
+
+이 admin의 인증은 **next-auth `^5.0.0-beta.32`** (Auth.js v5) 위에 서 있다. v5는 아직 정식 출시 전 beta다. 프로덕션에 beta 의존성을 넣는 건 분명한 리스크다 — breaking change, 문서 공백, 예상 못 한 동작.
+
+그럼에도 택한 이유는, v5의 App Router·서버 액션 통합 모델이 위의 3겹 구조(특히 서버 컴포넌트/액션에서 `auth()` 재호출)를 훨씬 자연스럽게 만들기 때문이다. 개인 블로그라 blast radius가 나 하나로 제한된다는 점도 감수 근거였다. 이런 결정은 "beta니까 무조건 피한다"가 아니라 **감당 가능한 실패 범위 안에서만 감수한다**가 맞다고 본다.
+
+## 정리
+
+| 지표           | before                | after                                                   |
+| -------------- | --------------------- | ------------------------------------------------------- |
+| 인증 방어 계층 | 1겹 (미들웨어만 가정) | **3겹** (미들웨어 + 레이아웃 재검증 + 서버 액션 재검증) |
+| 발행 경로      | 로컬 git 커밋 필수    | **브라우저 어디서나** (Octokit 원격 커밋)               |
+| 허용 계정      | —                     | GitHub **단일 계정 화이트리스트**                       |
+| 추가 스토리지  | —                     | **0개** (mdx 파일이 곧 콘텐츠 소스)                     |
+
+미들웨어는 문 앞의 경비지 금고 자물쇠가 아니다. 쓰기를 실제로 일으키는 함수마다 자물쇠를 하나씩 더 달아두는 것 — 그게 이 admin에서 가장 신경 쓴 한 가지였다.
