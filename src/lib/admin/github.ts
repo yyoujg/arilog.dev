@@ -59,6 +59,25 @@ export async function commitPost(
   });
 }
 
+// 이미지는 콘텐츠 해시가 파일명에 들어가 경로가 유니크하다 — sha 조회 불필요.
+export async function commitImage(
+  path: string,
+  base64Content: string,
+  message: string,
+): Promise<void> {
+  const octokit = getOctokit();
+  const { owner, repo } = repoParts();
+
+  await octokit.rest.repos.createOrUpdateFileContents({
+    owner,
+    repo,
+    path,
+    message,
+    content: base64Content,
+    branch: BRANCH,
+  });
+}
+
 export async function deletePostFile(
   slug: string,
   message: string,

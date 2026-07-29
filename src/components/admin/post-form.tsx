@@ -4,6 +4,8 @@ import {
   useRef,
   useState,
   useTransition,
+  type ChangeEvent,
+  type DragEvent,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -13,6 +15,7 @@ import {
   createPost,
   updatePost,
   renderPreviewAction,
+  uploadImage,
 } from "@/lib/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +47,10 @@ export function PostForm({ mode, initial }: PostFormProps) {
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [isUploadPending, startUploadTransition] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
   function handleBodyChange(next: string) {
     setBody(next);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -52,6 +59,51 @@ export function PostForm({ mode, initial }: PostFormProps) {
         setPreview(await renderPreviewAction(next));
       });
     }, PREVIEW_DEBOUNCE_MS);
+  }
+
+  function insertAtCursor(snippet: string) {
+    const el = bodyRef.current;
+    if (!el) {
+      handleBodyChange(body + snippet);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const next = body.slice(0, start) + snippet + body.slice(end);
+    handleBodyChange(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const cursor = start + snippet.length;
+      el.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  function uploadFile(file: File) {
+    setUploadError(null);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("slug", slug);
+    startUploadTransition(async () => {
+      const result = await uploadImage(formData);
+      if ("error" in result) {
+        setUploadError(result.error);
+        return;
+      }
+      const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+      insertAtCursor(`![${alt}](${result.path})\n`);
+    });
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  }
+
+  function handleFileInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+    e.target.value = "";
   }
 
   function handleSubmit(e: FormEvent) {
@@ -173,14 +225,32 @@ export function PostForm({ mode, initial }: PostFormProps) {
           draft
         </Label>
         <div className="grid gap-1.5">
-          <Label htmlFor="body">본문 (MDX)</Label>
-          <Textarea
-            id="body"
-            value={body}
-            onChange={(e) => handleBodyChange(e.target.value)}
-            className="min-h-[28rem] font-mono text-sm"
-            required
-          />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="body">본문 (MDX)</Label>
+            <label className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-4">
+              {isUploadPending ? "업로드 중..." : "이미지 업로드"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleFileInputChange}
+                disabled={isUploadPending}
+                className="sr-only"
+              />
+            </label>
+          </div>
+          <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+            <Textarea
+              id="body"
+              ref={bodyRef}
+              value={body}
+              onChange={(e) => handleBodyChange(e.target.value)}
+              className="min-h-[28rem] font-mono text-sm"
+              required
+            />
+          </div>
+          {uploadError && (
+            <p className="text-destructive text-sm">{uploadError}</p>
+          )}
         </div>
 
         {error && <p className="text-destructive text-sm">{error}</p>}

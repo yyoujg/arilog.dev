@@ -1,6 +1,7 @@
 "use server";
 
 import type { ReactNode } from "react";
+import { createHash } from "node:crypto";
 import matter from "gray-matter";
 import { redirect } from "next/navigation";
 
@@ -9,8 +10,19 @@ import { env } from "@/lib/env";
 import { frontmatterSchema, validateFrontmatter } from "@/lib/frontmatter";
 import { lintMdx } from "@/lib/lint-mdx";
 import { validateImages, extractImageSrcs } from "@/lib/validate-images";
-import { commitPost, deletePostFile } from "@/lib/admin/github";
+import { commitPost, deletePostFile, commitImage } from "@/lib/admin/github";
 import { MdxRenderer } from "@/components/blog/mdx-renderer";
+
+// MIME으로 실제 저장 확장자를 정한다(파일명 위장 방지). 원본 파일명 확장자도
+// 화이트리스트로 별도 검증해 MIME 스푸핑에 대한 이중 방어를 둔다.
+const IMAGE_MIME_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export interface PostFormInput {
   slug: string;
@@ -110,4 +122,49 @@ export async function deletePost(
 export async function renderPreviewAction(body: string): Promise<ReactNode> {
   await requireAdmin();
   return <MdxRenderer source={body} />;
+}
+
+export async function uploadImage(
+  formData: FormData,
+): Promise<{ path: string } | { error: string }> {
+  try {
+    await requireAdmin();
+
+    const slug = formData.get("slug");
+    if (typeof slug !== "string") throw new Error("slug가 없습니다");
+    assertValidSlug(slug);
+
+    const file = formData.get("file");
+    if (!(file instanceof File)) throw new Error("업로드할 파일이 없습니다");
+
+    const ext = IMAGE_MIME_EXT[file.type];
+    if (!ext) {
+      throw new Error(
+        `지원하지 않는 이미지 형식입니다: ${file.type || "알 수 없음"} (png/jpeg/webp/gif만 허용)`,
+      );
+    }
+    const nameExt = file.name.split(".").pop()?.toLowerCase();
+    if (!nameExt || !ALLOWED_EXTENSIONS.has(nameExt)) {
+      throw new Error(`지원하지 않는 파일 확장자입니다: .${nameExt ?? ""}`);
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error(
+        `이미지 용량이 너무 큽니다 (${(file.size / 1024 / 1024).toFixed(1)}MB, 최대 5MB)`,
+      );
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const hash8 = createHash("sha256").update(buffer).digest("hex").slice(0, 8);
+    const filename = `${slug}-${hash8}.${ext}`;
+
+    await commitImage(
+      `public/images/posts/${filename}`,
+      buffer.toString("base64"),
+      `chore: 에디터 이미지 업로드 ${filename}`,
+    );
+
+    return { path: `/images/posts/${filename}` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "알 수 없는 오류" };
+  }
 }
