@@ -15,11 +15,7 @@ export function PostCard({ post }: { post: PostMetaType }) {
         </p>
       </Link>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <PostMeta
-          date={post.date}
-          readingTime={post.readingTime}
-          category={post.category}
-        />
+        <PostMeta date={post.date} category={post.category} />
         <ul className="flex flex-wrap gap-1.5">
           {post.tags.map((tag) => (
             <li key={tag}>

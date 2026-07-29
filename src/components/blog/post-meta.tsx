@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface PostMetaProps {
   date: string; // YYYY-MM-DD
-  readingTime: number;
+  readingTime?: number;
   category?: string;
   className?: string;
 }
@@ -23,8 +23,12 @@ export function PostMeta({
       )}
     >
       <time dateTime={date}>{date.replace(/-/g, ".")}</time>
-      <span aria-hidden>·</span>
-      <span>{readingTime}분 읽기</span>
+      {readingTime !== undefined && (
+        <>
+          <span aria-hidden>·</span>
+          <span>{readingTime}분 읽기</span>
+        </>
+      )}
       {category && (
         <>
           <span aria-hidden>·</span>
