@@ -61,7 +61,7 @@ export const RESUME: Resume = {
       category: "품질·협업",
       items: ["ESLint", "Prettier", "Git", "GitLab", "Jira", "Figma"],
     },
-    { category: "AI·인프라", items: ["OpenAI Codex", "Nginx"] },
+    { category: "인프라", items: ["Nginx"] },
   ],
   experience: [
     {
@@ -80,14 +80,13 @@ export const RESUME: Resume = {
     },
     {
       company: COMPANY,
-      role: "사내 디자인 시스템 구축(AI 하네스 기반) · 디자인 토큰·컴포넌트 담당 + 에이전트 하네스 설계",
+      role: "사내 디자인 시스템 구축 · 디자인 토큰·컴포넌트 담당 + 빌드 자동화 스크립트 설계",
       period: "2026.06 ~ 재직중",
       description: [
         "사내 운영 시스템 공통 UI 디자인 시스템을 빈 레포에서 구축하는 이니셔티브.",
         "코드 생성 에이전트용 스킬 6종으로 생성 → 빌드 → 문서 → 번들측정을 강제 순서로 자동화",
         "tsup으로 별칭을 상대경로로 컴파일하고 CSS를 동봉해, 소비 측 설정 없이 import 2줄로 사용",
-        "size-limit으로 brotli 6.9KB 실측, 한도 초과 시 CI에서 빌드 실패",
-        "컴포넌트 2 → 4개 확장에도 번들 +0.19KB (tree-shaking 검증)",
+        "size-limit 게이트가 진입점 파일만 측정해 실제 번들의 1/47~1/85만 반영하던 결함을 직접 발견하고, preset-small-lib로 측정 방식을 교체해 게이트 8개를 실측 기준(Button 8.46KB 등)으로 재설계했습니다. 이전에 팀에 공유됐던 수치가 실제와 무관했음을 밝혀내 MR에 정정 기록을 남겼습니다.",
         "컴포넌트 8종 — Button·Input·Dropdown·Badge·Modal·Toast·Tooltip·Popover",
         "Storybook play + axe로 접근성 위반 자동 검출",
         "base / semantic 2계층 토큰 구조, 컴포넌트는 semantic만 참조",

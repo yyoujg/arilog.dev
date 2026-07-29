@@ -9,7 +9,7 @@ import { Timeline } from "@/components/about/timeline";
 export const metadata: Metadata = buildMetadata({
   title: "About",
   description:
-    "Next.js·React로 멀티테넌트 예약 SaaS와 대규모 운영 시스템을 0→1로 설계·구축하고, AI 하네스로 개발 워크플로를 자동화하는 3년차 프론트엔드 개발자입니다.",
+    "Next.js·React로 멀티테넌트 예약 SaaS와 대규모 운영 시스템을 0→1로 설계·구축하는 3년차 프론트엔드 개발자입니다.",
   path: "/about",
 });
 
@@ -24,7 +24,10 @@ const METRICS = [
   { label: "중복 제거", value: "날짜 상태 중앙화로 중복 코드 1,854줄 제거" },
   { label: "자동화", value: "번역 반영 5~10분 → 1분" },
   { label: "토큰화", value: "디자인 토큰화로 하드코딩 120 → 6" },
-  { label: "경량화", value: "디자인 시스템 번들 brotli 6.9KB" },
+  {
+    label: "측정 오차 발견",
+    value: "size-limit 게이트 오차 1/47~1/85 발견·정정",
+  },
 ];
 
 const CAPABILITIES = [
@@ -50,9 +53,8 @@ const CAPABILITIES = [
     detail: "멀티테넌트 SaaS · 예약/결제 · 인증 · 멤버십 · 운영 어드민",
   },
   {
-    area: "AI 워크플로",
-    detail:
-      "OpenAI Codex 기반 코드 생성 에이전트 하네스 (컴포넌트 생성·문서·번들측정 자동화)",
+    area: "빌드 자동화",
+    detail: "컴포넌트 생성·문서·번들측정 자동화 스크립트 설계",
   },
 ];
 
