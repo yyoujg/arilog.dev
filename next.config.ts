@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
     return [
       // page 1은 영구적으로 /blog에 존재. 라우팅 레이어에서 308로 넘긴다.
       { source: "/blog/page/1", destination: "/blog", permanent: true },
+      // 슬러그 오타 정정 전 URL. 배포된 외부 링크·SEO 보존을 위해 308로 넘긴다.
+      {
+        source: "/projects/moneyturmy",
+        destination: "/projects/moneytermi",
+        permanent: true,
+      },
     ];
   },
 };
