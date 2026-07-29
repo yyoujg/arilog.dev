@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { RESUME } from "@/constants/resume";
 import { buildMetadata } from "@/lib/seo";
@@ -112,6 +113,12 @@ export default function AboutPage() {
         <section>
           <SectionTitle>경력</SectionTitle>
           <Timeline items={RESUME.experience} />
+          <Link
+            href="/resume"
+            className="text-muted-foreground hover:text-foreground mt-2 inline-block text-sm underline underline-offset-4 transition-colors"
+          >
+            전체 경력 상세는 이력서에서 확인하세요 →
+          </Link>
         </section>
       </div>
     </Container>
