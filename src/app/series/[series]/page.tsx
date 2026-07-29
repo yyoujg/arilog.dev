@@ -47,11 +47,7 @@ export default async function SeriesPage(props: PageProps<"/series/[series]">) {
               >
                 {post.title}
               </Link>
-              <PostMeta
-                date={post.date}
-                readingTime={post.readingTime}
-                className="mt-1"
-              />
+              <PostMeta date={post.date} className="mt-1" />
             </div>
           </li>
         ))}

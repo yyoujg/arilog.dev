@@ -62,11 +62,7 @@ export default async function PostPage(
               {post.description}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <PostMeta
-                date={post.date}
-                readingTime={post.readingTime}
-                category={post.category}
-              />
+              <PostMeta date={post.date} category={post.category} />
               {post.series && (
                 <Link
                   href={`/series/${encodeURIComponent(post.series)}`}
