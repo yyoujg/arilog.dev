@@ -1,0 +1,85 @@
+---
+title: "Could not find the module in the React Client Manifest — 서버 액션이 반환한 클라이언트 컴포넌트가 프로덕션에서만 터질 때"
+description: admin 미리보기가 dev에선 멀쩡한데 프로덕션 빌드에서만 죽었다. 서버 액션이 반환하는 클라이언트 컴포넌트가 라우트 매니페스트에서 통째로 빠지던 문제를, 격리 재현과 빌드 산출물 검증으로 잡은 과정.
+date: 2026-07-30
+category: Next.js
+tags:
+  - Next.js
+  - RSC
+  - Server Components
+  - React
+  - 트러블슈팅
+draft: false
+---
+
+## 증상: dev는 멀쩡, 프로덕션만 죽는다
+
+admin에서 글을 편집하다 미리보기 버튼을 눌렀다. 로컬 개발 서버에선 코드블록도 복사 버튼도 잘 떴다. 그런데 배포된 프로덕션에서 같은 버튼을 누르면 서버 액션이 에러를 던졌다. 브라우저엔 흔한 digest 해시만 찍히고 내용은 가려진 채였다.
+
+"dev에서 재현 안 되고 프로덕션에서만"이라는 조건은 거의 항상 빌드 타임 최적화가 범인이다. dev 서버는 대부분의 번들 최적화를 생략하기 때문이다.
+
+## 로그 해독: 매니페스트에 없는 모듈
+
+프로덕션 서버 로그에서 digest에 대응하는 실제 에러를 찾았다.
+
+```
+Error: Could not find the module "[project]/src/components/blog/mdx/copy-button.tsx#CopyButton" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+```
+
+`CopyButton`은 코드블록에 붙는 "복사" 버튼, 즉 클라이언트 컴포넌트다. RSC 환경에서 서버가 클라이언트 컴포넌트를 직렬화하려면, 그 컴포넌트가 React Client Manifest에 등록돼 있어야 한다. 매니페스트에 엔트리가 없으면 서버는 "이 클라이언트 모듈이 뭔지 모른다"며 죽는다.
+
+## 메커니즘: 라우트 그래프에 없으면 매니페스트에도 없다
+
+추적해보니 연결은 이랬다.
+
+미리보기 서버 액션 `renderPreviewAction`이 `<MdxRenderer>`를 반환한다. 그 안의 코드블록 렌더러(`CodeBlock`)가 클라이언트 컴포넌트 `CopyButton`을 렌더한다. 문제는 `/admin/posts/[slug]/edit` 라우트의 어떤 page.tsx나 layout.tsx도 `MdxRenderer`를 직접 참조하지 않았다는 것. `MdxRenderer`는 오직 `actions.tsx`(서버 액션 전용 모듈)에서만 import되고 있었다.
+
+Next.js는 라우트별 Client Reference Manifest를 그 라우트의 실제 렌더 트리(모듈 그래프)로부터 만든다. 그런데 `CopyButton`으로 이어지는 경로가 렌더 트리엔 없고 서버 액션 모듈에만 있으니, 이 라우트의 매니페스트에서 `CopyButton` 엔트리가 통째로 빠졌다. dev 서버는 이 라우트별 최적화를 하지 않아 항상 전체를 들고 있었고, 그래서 프로덕션 빌드에서만 터진 것이다.
+
+## 검증: 추측으로 고치지 않는다
+
+원인을 "그럴듯하게" 설명했다고 바로 실코드를 건드리지 않았다. 이건 프로덕션에서만 나는 버그라, 고쳤다고 착각하기 딱 좋다.
+
+1. **격리 재현** — 인증이 필요 없는 임시 라우트를 만들어, 같은 패턴(별도 모듈의 서버 액션이 페이지가 안 쓰는 클라이언트 컴포넌트를 반환)을 재현했다. `next build && next start`로 동일한 에러·동일한 digest 메시지를 로컬에서 재현했다.
+2. **픽스를 repro에서 먼저 검증** — 그 임시 라우트의 page에 문제 컴포넌트를 숨겨 렌더하도록 넣고 재빌드하니, 같은 클릭이 정상 동작했다.
+3. **빌드 산출물 직접 확인** — 임시 라우트를 지우고 실제 코드에 적용한 뒤, `.next/server/app/.../page_client-reference-manifest.js`를 열어 해당 클라이언트 참조 엔트리가 실제로 생겼는지를 눈으로 확인했다. "에러가 사라졌다"가 아니라 "매니페스트에 엔트리가 생겼다"를 증거로 삼았다.
+
+## 해결: 라우트 그래프에 강제로 포함시키기
+
+수정은 보호 라우트들이 공유하는 레이아웃에, 화면에 안 보이는 렌더 하나를 넣는 것이었다.
+
+```tsx
+// src/app/admin/(protected)/layout.tsx
+import { MdxRenderer } from "@/components/blog/mdx-renderer";
+
+export default async function AdminProtectedLayout({ children }) {
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      {children}
+
+      {/* 왜 존재하는가: renderPreviewAction(src/lib/admin/actions.tsx)이
+          반환하는 MdxRenderer는 CopyButton 같은 클라이언트 컴포넌트를
+          포함한다. 이 admin 라우트 그룹의 어떤 page.tsx도 MdxRenderer를
+          직접 참조하지 않으면, 그 Server Action 응답을 만드는 React Client
+          Manifest에 CopyButton 엔트리가 통째로 빠진다. 이 렌더는 그
+          엔트리를 라우트 모듈 그래프에 강제로 포함시키기 위한 것 —
+          실제로 보여줄 내용은 없다.
+          지우면 안 되는 이유: 지우면 프로덕션 빌드에서만
+          "Could not find the module ... in the React Client Manifest"
+          에러가 재발한다. dev 서버는 이 매니페스트 최적화를 하지 않아
+          재현되지 않으므로, 로컬 dev 확인만으로는 이 회귀를 잡을 수 없다.
+          hidden + aria-hidden으로 시각·접근성 트리 양쪽에서 완전히
+          제외된다(display: none이라 레이아웃 공간도 차지하지 않는다). */}
+      <div hidden aria-hidden="true">
+        <MdxRenderer source="" />
+      </div>
+    </div>
+  );
+}
+```
+
+`hidden` 속성으로 `display: none` + 접근성 트리 제외가 되고, 부모가 flex/grid가 아니라 레이아웃 공간도 차지하지 않는다. 이 렌더 하나가 라우트 모듈 그래프에 `MdxRenderer → CodeBlock → CopyButton` 경로를 넣어, 매니페스트에 클라이언트 참조가 생기게 한다.
+
+## 교훈
+
+서버 액션이 반환하는 클라이언트 컴포넌트는, 그 라우트의 렌더 트리에 나타나지 않으면 매니페스트에서 누락된다. 서버 액션 모듈에서만 import되는 클라이언트 컴포넌트가 있다면 의심해볼 지점이다. 그리고 "dev에서 안 나는 버그"는 격리 재현으로 프로덕션 조건을 만들어야 확증되고, 픽스도 "에러가 안 난다"가 아니라 빌드 산출물 수준의 증거로 검증해야 안심할 수 있다.
