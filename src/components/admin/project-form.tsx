@@ -87,7 +87,23 @@ export function ProjectForm({
         withBlobs = withBlobs.split(path).join(blobUrl);
       }
       startPreviewTransition(async () => {
-        setPreview(await renderPreviewAction(withBlobs));
+        try {
+          setPreview(await renderPreviewAction(withBlobs));
+        } catch (e) {
+          // requireAdmin() 실패(세션 만료 등)를 포함해 renderPreviewAction의
+          // 어떤 예외도 폼 전체를 에러 바운더리로 무너뜨리지 않고 미리보기
+          // 패널에만 표시한다. 서버측 인증 자체는 그대로 유지 — 여기선 안 삼키고
+          // 화면만 지킨다.
+          const isAuthError =
+            e instanceof Error && e.message.includes("인증되지 않은 요청");
+          setPreview(
+            <p className="text-destructive text-sm">
+              {isAuthError
+                ? "세션이 만료되었습니다. 다시 로그인해주세요."
+                : "미리보기를 불러올 수 없습니다."}
+            </p>,
+          );
+        }
       });
     }, PREVIEW_DEBOUNCE_MS);
     return () => {
