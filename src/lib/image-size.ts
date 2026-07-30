@@ -62,7 +62,12 @@ export function inspectImage(src: string): ImageInfo {
 }
 
 function compute(src: string): ImageInfo {
-  if (/^https?:\/\//.test(src)) return { status: "remote" };
+  // blob: 은 admin 미리보기가 이번 세션에 업로드한 이미지를 즉시 보여주려고
+  // 붙이는 objectURL이다. 로컬 fs엔 실체가 없으므로 remote와 동일하게
+  // 크기 주입 없이 plain img로 렌더한다.
+  if (/^https?:\/\//.test(src) || src.startsWith("blob:")) {
+    return { status: "remote" };
+  }
 
   const relParts = src.replace(/^\//, "").split("/").filter(Boolean);
   const resolved = path.join(PUBLIC_DIR, ...relParts);

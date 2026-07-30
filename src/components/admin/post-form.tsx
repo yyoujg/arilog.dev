@@ -52,20 +52,36 @@ export function PostForm({ mode, initial }: PostFormProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // 커밋 경로(/images/posts/...) -> 이번 세션에 올린 objectURL. 배포 전
+  // 미리보기에서만 쓰고, 저장되는 body 문자열엔 절대 섞이지 않는다.
+  const uploadedBlobsRef = useRef<Map<string, string>>(new Map());
 
-  // previewUrl이 바뀌거나 언마운트될 때 이전 objectURL을 해제한다.
+  // 언마운트 시 이번 세션에 만든 objectURL을 전부 해제한다. uploadedBlobsRef는
+  // 재할당 없이 계속 같은 Map을 변형만 하므로, 마운트 시점에 참조를 잡아둬도
+  // 언마운트 시점의 최신 내용을 그대로 가리킨다.
   useEffect(() => {
+    const blobs = uploadedBlobsRef.current;
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      for (const url of blobs.values()) {
+        URL.revokeObjectURL(url);
+      }
     };
-  }, [previewUrl]);
+  }, []);
+
+  function withUploadedBlobs(text: string): string {
+    let result = text;
+    for (const [path, blobUrl] of uploadedBlobsRef.current) {
+      result = result.split(path).join(blobUrl);
+    }
+    return result;
+  }
 
   function handleBodyChange(next: string) {
     setBody(next);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       startPreviewTransition(async () => {
-        setPreview(await renderPreviewAction(next));
+        setPreview(await renderPreviewAction(withUploadedBlobs(next)));
       });
     }, PREVIEW_DEBOUNCE_MS);
   }
@@ -89,7 +105,8 @@ export function PostForm({ mode, initial }: PostFormProps) {
 
   function uploadFile(file: File) {
     setUploadError(null);
-    setPreviewUrl(URL.createObjectURL(file));
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("slug", slug);
@@ -100,6 +117,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
         setUploadError(result.error);
         return;
       }
+      uploadedBlobsRef.current.set(result.path, objectUrl);
       const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
       insertAtCursor(`![${alt}](${result.path})\n`);
     });
