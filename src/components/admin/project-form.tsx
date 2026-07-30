@@ -59,7 +59,6 @@ export function ProjectForm({
   const [isUploadPending, startUploadTransition] = useTransition();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
   // 커밋 경로(/images/projects/...) -> 이번 세션에 올린 objectURL. 배포 전
   // 미리보기에서만 쓰고, 저장되는 body 문자열엔 절대 섞이지 않는다.
   const uploadedBlobsRef = useRef<Map<string, string>>(new Map());
@@ -76,39 +75,26 @@ export function ProjectForm({
     };
   }, []);
 
-  function withUploadedBlobs(text: string): string {
-    let result = text;
-    for (const [path, blobUrl] of uploadedBlobsRef.current) {
-      result = result.split(path).join(blobUrl);
-    }
-    return result;
-  }
+  // body가 바뀔 때마다(타이핑, 이미지 업로드 완료) 디바운스 후 미리보기를 새로 렌더한다.
+  // 항상 최신 body를 읽으므로, 업로드 완료 시점에 캡처해두는 stale closure가 없다.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      let withBlobs = body;
+      for (const [path, blobUrl] of uploadedBlobsRef.current) {
+        withBlobs = withBlobs.split(path).join(blobUrl);
+      }
+      startPreviewTransition(async () => {
+        setPreview(await renderPreviewAction(withBlobs));
+      });
+    }, PREVIEW_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [body]);
 
   function handleBodyChange(next: string) {
     setBody(next);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      startPreviewTransition(async () => {
-        setPreview(await renderPreviewAction(withUploadedBlobs(next)));
-      });
-    }, PREVIEW_DEBOUNCE_MS);
-  }
-
-  function insertAtCursor(snippet: string) {
-    const el = bodyRef.current;
-    if (!el) {
-      handleBodyChange(body + snippet);
-      return;
-    }
-    const start = el.selectionStart ?? body.length;
-    const end = el.selectionEnd ?? body.length;
-    const next = body.slice(0, start) + snippet + body.slice(end);
-    handleBodyChange(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const cursor = start + snippet.length;
-      el.setSelectionRange(cursor, cursor);
-    });
   }
 
   function uploadFile(file: File) {
@@ -127,7 +113,11 @@ export function ProjectForm({
       }
       uploadedBlobsRef.current.set(result.path, objectUrl);
       const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
-      insertAtCursor(`![${alt}](${result.path})\n`);
+      const snippet = `![${alt}](${result.path})\n`;
+      // 함수형 업데이트: 업로드는 비동기라 완료 시점의 body가 클릭 시점과
+      // 다를 수 있다(타이핑 진행, 다른 이미지 업로드 완료 등). 클로저로 캡처한
+      // body를 쓰면 그 사이 변경분을 통째로 덮어써 유실한다.
+      setBody((prev) => prev + snippet);
     });
   }
 
@@ -329,7 +319,6 @@ export function ProjectForm({
           <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
             <Textarea
               id="body"
-              ref={bodyRef}
               value={body}
               onChange={(e) => handleBodyChange(e.target.value)}
               className="min-h-[28rem] font-mono text-sm"
