@@ -20,13 +20,14 @@ async function getFileSha(
   owner: string,
   repo: string,
   path: string,
+  ref: string,
 ): Promise<string | undefined> {
   try {
     const res = await octokit.rest.repos.getContent({
       owner,
       repo,
       path,
-      ref: BRANCH,
+      ref,
     });
     return Array.isArray(res.data) ? undefined : res.data.sha;
   } catch {
@@ -35,14 +36,17 @@ async function getFileSha(
 }
 
 // posts/projects 공용 — content/<kind>/<slug>.mdx 경로를 그대로 받아 upsert한다.
+// branch는 기본값(main)만 실제 서버 액션에서 쓴다. write 경로를 실 GitHub에
+// 검증할 때 throwaway 브랜치를 넘길 수 있도록 열어둔 파라미터.
 export async function commitContentFile(
   path: string,
   fileContent: string,
   message: string,
+  branch: string = BRANCH,
 ): Promise<void> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
-  const sha = await getFileSha(octokit, owner, repo, path);
+  const sha = await getFileSha(octokit, owner, repo, path, branch);
 
   await octokit.rest.repos.createOrUpdateFileContents({
     owner,
@@ -51,15 +55,18 @@ export async function commitContentFile(
     message,
     content: Buffer.from(fileContent, "utf8").toString("base64"),
     sha,
-    branch: BRANCH,
+    branch,
   });
 }
 
 // 생성 시 slug 중복 차단용 — 파일 존재 여부만 필요한 호출부에서 쓴다.
-export async function contentFileExists(path: string): Promise<boolean> {
+export async function contentFileExists(
+  path: string,
+  branch: string = BRANCH,
+): Promise<boolean> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
-  return (await getFileSha(octokit, owner, repo, path)) !== undefined;
+  return (await getFileSha(octokit, owner, repo, path, branch)) !== undefined;
 }
 
 // 파일명이 콘텐츠 해시라 경로가 곧 내용의 지문이다. 이미 존재하면 업로드된
@@ -70,11 +77,12 @@ export async function commitImage(
   path: string,
   base64Content: string,
   message: string,
+  branch: string = BRANCH,
 ): Promise<void> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
 
-  const sha = await getFileSha(octokit, owner, repo, path);
+  const sha = await getFileSha(octokit, owner, repo, path, branch);
   if (sha) return;
 
   await octokit.rest.repos.createOrUpdateFileContents({
@@ -83,7 +91,7 @@ export async function commitImage(
     path,
     message,
     content: base64Content,
-    branch: BRANCH,
+    branch,
     sha, // 이 시점엔 항상 undefined(신규 생성)이지만, 위 조기 반환이 사라지는
     // 리팩터를 대비해 항상 넘겨둔다.
   });
@@ -92,6 +100,7 @@ export async function commitImage(
 export async function deleteContentFile(
   path: string,
   message: string,
+  branch: string = BRANCH,
 ): Promise<void> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
@@ -99,7 +108,7 @@ export async function deleteContentFile(
     owner,
     repo,
     path,
-    ref: BRANCH,
+    ref: branch,
   });
   if (Array.isArray(res.data))
     throw new Error(`경로가 파일이 아닙니다: ${path}`);
@@ -110,6 +119,6 @@ export async function deleteContentFile(
     path,
     message,
     sha: res.data.sha,
-    branch: BRANCH,
+    branch,
   });
 }
