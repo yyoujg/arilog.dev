@@ -14,7 +14,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 // /projects 아래 정적 자식 세그먼트. 프로젝트 slug로 쓰이면 라우트가 충돌하므로
 // 예약어로 강제한다(빌드 실패). 세그먼트를 추가하면 여기에도 반영한다.
-const RESERVED_SLUGS = new Set(["stack"]);
+export const RESERVED_SLUGS = new Set(["stack"]);
 
 function loadProjects(): Project[] {
   if (!fs.existsSync(PROJECTS_DIR)) return [];

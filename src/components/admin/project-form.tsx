@@ -11,10 +11,10 @@ import {
   type ReactNode,
 } from "react";
 
-import type { PostMeta } from "@/types/post";
+import type { ProjectMeta } from "@/types/project";
 import {
-  createPost,
-  updatePost,
+  createProject,
+  updateProject,
   renderPreviewAction,
   uploadImage,
 } from "@/lib/admin/actions";
@@ -25,20 +25,28 @@ import { Label } from "@/components/ui/label";
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
-interface PostFormProps {
+interface ProjectFormProps {
   mode: "create" | "edit";
-  initial?: PostMeta & { body: string };
+  initial?: ProjectMeta & { body: string };
+  suggestedOrder?: number;
 }
 
-export function PostForm({ mode, initial }: PostFormProps) {
-  const [slug, setSlug] = useState(initial?.slug.replace(/^posts\//, "") ?? "");
+export function ProjectForm({
+  mode,
+  initial,
+  suggestedOrder,
+}: ProjectFormProps) {
+  const [slug, setSlug] = useState(initial?.slug ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [date, setDate] = useState(initial?.date ?? "");
-  const [category, setCategory] = useState(initial?.category ?? "");
-  const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const [period, setPeriod] = useState(initial?.period ?? "");
+  const [role, setRole] = useState(initial?.role ?? "");
+  const [stack, setStack] = useState(initial?.stack.join(", ") ?? "");
+  const [github, setGithub] = useState(initial?.github ?? "");
+  const [demo, setDemo] = useState(initial?.demo ?? "");
   const [thumbnail, setThumbnail] = useState(initial?.thumbnail ?? "");
-  const [series, setSeries] = useState(initial?.series ?? "");
+  const [order, setOrder] = useState(initial?.order ?? suggestedOrder ?? 0);
+  const [featured, setFeatured] = useState(initial?.featured ?? false);
   const [draft, setDraft] = useState(initial?.draft ?? true);
   const [body, setBody] = useState(initial?.body ?? "");
 
@@ -93,7 +101,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("slug", slug);
-    formData.append("kind", "posts");
+    formData.append("kind", "projects");
     startUploadTransition(async () => {
       const result = await uploadImage(formData);
       if ("error" in result) {
@@ -123,20 +131,23 @@ export function PostForm({ mode, initial }: PostFormProps) {
     const input = {
       slug,
       title,
-      description,
-      date,
-      category,
-      tags: tags
+      summary,
+      period,
+      role,
+      stack: stack
         .split(",")
-        .map((t) => t.trim())
+        .map((s) => s.trim())
         .filter(Boolean),
-      thumbnail: thumbnail || undefined,
-      series: series || undefined,
+      github: github || undefined,
+      demo: demo || undefined,
+      thumbnail,
+      order,
+      featured,
       draft,
       body,
     };
     startSubmitTransition(async () => {
-      const action = mode === "create" ? createPost : updatePost;
+      const action = mode === "create" ? createProject : updateProject;
       const result = await action(input);
       if (result?.error) setError(result.error);
     });
@@ -153,7 +164,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
             onChange={(e) => setSlug(e.target.value)}
             disabled={mode === "edit"}
             pattern="[a-z0-9-]+"
-            placeholder="my-new-post"
+            placeholder="my-new-project"
             required
           />
         </div>
@@ -167,74 +178,111 @@ export function PostForm({ mode, initial }: PostFormProps) {
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="description">description</Label>
+          <Label htmlFor="summary">summary</Label>
           <Input
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            id="summary"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
             required
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="date">date</Label>
+            <Label htmlFor="period">period</Label>
             <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              id="period"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              placeholder="2026.01 - 2026.06"
               required
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="category">category</Label>
+            <Label htmlFor="role">role</Label>
             <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
               required
             />
           </div>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="tags">tags (콤마로 구분)</Label>
+          <Label htmlFor="stack">stack (콤마로 구분)</Label>
           <Input
-            id="tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="React, 트러블슈팅"
+            id="stack"
+            value={stack}
+            onChange={(e) => setStack(e.target.value)}
+            placeholder="Next.js, TypeScript"
             required
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="thumbnail">thumbnail (선택)</Label>
+            <Label htmlFor="github">github (선택)</Label>
+            <Input
+              id="github"
+              type="url"
+              value={github}
+              onChange={(e) => setGithub(e.target.value)}
+              placeholder="https://github.com/..."
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="demo">demo (선택)</Label>
+            <Input
+              id="demo"
+              type="url"
+              value={demo}
+              onChange={(e) => setDemo(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="thumbnail">thumbnail</Label>
             <Input
               id="thumbnail"
               value={thumbnail}
               onChange={(e) => setThumbnail(e.target.value)}
-              placeholder="/images/posts/..."
+              placeholder="/images/projects/..."
+              required
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="series">series (선택)</Label>
+            <Label htmlFor="order">order</Label>
             <Input
-              id="series"
-              value={series}
-              onChange={(e) => setSeries(e.target.value)}
+              id="order"
+              type="number"
+              value={order}
+              onChange={(e) => setOrder(Number(e.target.value))}
+              required
             />
           </div>
         </div>
-        <Label htmlFor="draft" className="w-fit">
-          <input
-            id="draft"
-            type="checkbox"
-            checked={draft}
-            onChange={(e) => setDraft(e.target.checked)}
-            className="size-4"
-          />
-          draft
-        </Label>
+        <div className="flex gap-4">
+          <Label htmlFor="featured" className="w-fit">
+            <input
+              id="featured"
+              type="checkbox"
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+              className="size-4"
+            />
+            featured
+          </Label>
+          <Label htmlFor="draft" className="w-fit">
+            <input
+              id="draft"
+              type="checkbox"
+              checked={draft}
+              onChange={(e) => setDraft(e.target.checked)}
+              className="size-4"
+            />
+            draft
+          </Label>
+        </div>
         <div className="grid gap-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="body">본문 (MDX)</Label>

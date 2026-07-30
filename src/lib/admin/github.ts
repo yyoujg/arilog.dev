@@ -15,10 +15,6 @@ function repoParts(): { owner: string; repo: string } {
   return { owner, repo };
 }
 
-function postPath(slug: string): string {
-  return `content/posts/${slug}.mdx`;
-}
-
 async function getFileSha(
   octokit: Octokit,
   owner: string,
@@ -38,14 +34,14 @@ async function getFileSha(
   }
 }
 
-export async function commitPost(
-  slug: string,
+// posts/projects 공용 — content/<kind>/<slug>.mdx 경로를 그대로 받아 upsert한다.
+export async function commitContentFile(
+  path: string,
   fileContent: string,
   message: string,
 ): Promise<void> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
-  const path = postPath(slug);
   const sha = await getFileSha(octokit, owner, repo, path);
 
   await octokit.rest.repos.createOrUpdateFileContents({
@@ -57,6 +53,13 @@ export async function commitPost(
     sha,
     branch: BRANCH,
   });
+}
+
+// 생성 시 slug 중복 차단용 — 파일 존재 여부만 필요한 호출부에서 쓴다.
+export async function contentFileExists(path: string): Promise<boolean> {
+  const octokit = getOctokit();
+  const { owner, repo } = repoParts();
+  return (await getFileSha(octokit, owner, repo, path)) !== undefined;
 }
 
 // 파일명이 콘텐츠 해시라 경로가 곧 내용의 지문이다. 이미 존재하면 업로드된
@@ -86,13 +89,12 @@ export async function commitImage(
   });
 }
 
-export async function deletePostFile(
-  slug: string,
+export async function deleteContentFile(
+  path: string,
   message: string,
 ): Promise<void> {
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
-  const path = postPath(slug);
   const res = await octokit.rest.repos.getContent({
     owner,
     repo,
