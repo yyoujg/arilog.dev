@@ -152,7 +152,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             disabled={mode === "edit"}
-            pattern="[a-z0-9-]+"
+            pattern="[a-z0-9\-]+"
             placeholder="my-new-post"
             required
           />

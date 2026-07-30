@@ -71,7 +71,7 @@ async function requireAdmin(): Promise<void> {
 // 클라이언트 폼 검증과 별개로 서버에서 재검증 — 경로 구분자·상위 디렉토리
 // 이동 문자가 섞인 slug로 GitHub 커밋 경로가 벗어나는 것을 막는다.
 function assertValidSlug(slug: string): void {
-  if (!/^[a-z0-9-]+$/.test(slug)) {
+  if (!/^[a-z0-9\-]+$/.test(slug)) {
     throw new Error(`올바르지 않은 slug입니다(kebab-case만 허용): ${slug}`);
   }
 }
