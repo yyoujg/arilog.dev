@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   useTransition,
@@ -49,7 +50,15 @@ export function PostForm({ mode, initial }: PostFormProps) {
 
   const [isUploadPending, startUploadTransition] = useTransition();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  // previewUrl이 바뀌거나 언마운트될 때 이전 objectURL을 해제한다.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   function handleBodyChange(next: string) {
     setBody(next);
@@ -80,6 +89,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
 
   function uploadFile(file: File) {
     setUploadError(null);
+    setPreviewUrl(URL.createObjectURL(file));
     const formData = new FormData();
     formData.append("file", file);
     formData.append("slug", slug);
@@ -238,6 +248,17 @@ export function PostForm({ mode, initial }: PostFormProps) {
               />
             </label>
           </div>
+          <p className="text-muted-foreground text-xs">
+            이미지는 배포 후 본문에 반영됩니다.
+          </p>
+          {previewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- objectURL은 next/image 최적화 대상이 아님
+            <img
+              src={previewUrl}
+              alt="업로드한 이미지 미리보기"
+              className="border-border h-20 w-20 rounded-md border object-cover"
+            />
+          )}
           <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
             <Textarea
               id="body"
