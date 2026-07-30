@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 const PREVIEW_DEBOUNCE_MS = 400;
+// 서버 assertValidSlug(src/lib/admin/actions.tsx)와 동일한 kebab-case 규칙.
+const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
 interface ProjectFormProps {
   mode: "create" | "edit";
@@ -98,6 +100,12 @@ export function ProjectForm({
   }
 
   function uploadFile(file: File) {
+    if (!SLUG_PATTERN.test(slug)) {
+      setUploadError(
+        "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요",
+      );
+      return;
+    }
     setUploadError(null);
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
@@ -161,6 +169,8 @@ export function ProjectForm({
     });
   }
 
+  const slugValid = SLUG_PATTERN.test(slug);
+
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-2">
       <div className="flex flex-col gap-4">
@@ -171,7 +181,7 @@ export function ProjectForm({
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             disabled={mode === "edit"}
-            pattern="[a-z0-9\-]+"
+            pattern={SLUG_PATTERN.source}
             placeholder="my-new-project"
             required
           />
@@ -294,19 +304,33 @@ export function ProjectForm({
         <div className="grid gap-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="body">본문 (MDX)</Label>
-            <label className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-4">
+            <label
+              className={
+                slugValid
+                  ? "text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-4"
+                  : "text-muted-foreground/50 cursor-not-allowed text-xs underline underline-offset-4"
+              }
+            >
               {isUploadPending ? "업로드 중..." : "이미지 업로드"}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileInputChange}
-                disabled={isUploadPending}
+                disabled={isUploadPending || !slugValid}
                 className="sr-only"
               />
             </label>
           </div>
-          <p className="text-muted-foreground text-xs">
-            이미지는 배포 후 본문에 반영됩니다.
+          <p
+            className={
+              slugValid
+                ? "text-muted-foreground text-xs"
+                : "text-destructive text-xs"
+            }
+          >
+            {slugValid
+              ? "이미지는 배포 후 본문에 반영됩니다."
+              : "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요."}
           </p>
           {previewUrl && (
             // eslint-disable-next-line @next/next/no-img-element -- objectURL은 next/image 최적화 대상이 아님
