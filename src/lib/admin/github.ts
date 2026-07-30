@@ -59,7 +59,10 @@ export async function commitPost(
   });
 }
 
-// 이미지는 콘텐츠 해시가 파일명에 들어가 경로가 유니크하다 — sha 조회 불필요.
+// 파일명이 콘텐츠 해시라 경로가 곧 내용의 지문이다. 이미 존재하면 업로드된
+// 바이트가 이미 동일하다는 뜻이므로 재커밋 없이 그대로 성공 처리한다(멱등).
+// 동일 경로에 sha 없이 createOrUpdateFileContents를 호출하면 GitHub가
+// 422("sha wasn't supplied")로 거부하기 때문에 사전 조회가 꼭 필요하다.
 export async function commitImage(
   path: string,
   base64Content: string,
@@ -68,6 +71,9 @@ export async function commitImage(
   const octokit = getOctokit();
   const { owner, repo } = repoParts();
 
+  const sha = await getFileSha(octokit, owner, repo, path);
+  if (sha) return;
+
   await octokit.rest.repos.createOrUpdateFileContents({
     owner,
     repo,
@@ -75,6 +81,8 @@ export async function commitImage(
     message,
     content: base64Content,
     branch: BRANCH,
+    sha, // 이 시점엔 항상 undefined(신규 생성)이지만, 위 조기 반환이 사라지는
+    // 리팩터를 대비해 항상 넘겨둔다.
   });
 }
 
