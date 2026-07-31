@@ -49,3 +49,7 @@ public/search-index.json
 /playwright-report/
 /blob-report/
 /.playwright/
+
+.DS_Store
+public/images/tool/
+.claude/
