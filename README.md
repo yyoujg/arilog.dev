@@ -19,6 +19,13 @@ TODO: 확인 필요 — 그 외 제작 동기(예: 특정 사이드 프로젝트
   실패시킨다. 본문에서 참조하는 이미지 존재 여부([`src/lib/validate-images.ts`](src/lib/validate-images.ts)),
   글 slug가 `<카테고리>/<파일>` 2단계 구조를 지키는지도 로드 시점에 검사한다
   ([`src/lib/mdx.ts`](src/lib/mdx.ts)).
+  - **읽기는 관대하게, 쓰기는 엄격하게** — 필수: `title`, `description`(구
+    필드명 `summary`도 허용), `date`(`YYYY-MM-DD`), `tags`(1개 이상). `category`
+    누락 시 "미분류", `draft` 누락 시 `false`(공개)로 기본값 처리한다 —
+    필드 하나가 없다고 글이 목록에서 조용히 사라지지 않는다. 단 admin
+    저장 경로([`src/lib/admin/actions.tsx`](src/lib/admin/actions.tsx))는
+    `title`/`date`/`category`를 여전히 필수로 강제해, 새로 쓰는 글은
+    처음부터 스키마를 지키게 한다.
 - **MDX 안전장치** — `next-mdx-remote`의 `blockJS`(기본 true)는 JSX 표현식·
   import/export를 경고 없이 조용히 제거한다. 이 실수를 빌드 시점에 잡기 위해
   자체 린터([`src/lib/lint-mdx.ts`](src/lib/lint-mdx.ts))를 만들어 금지 문법이

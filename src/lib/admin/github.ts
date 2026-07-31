@@ -69,6 +69,29 @@ export async function contentFileExists(
   return (await getFileSha(octokit, owner, repo, path, branch)) !== undefined;
 }
 
+// 편집 저장 직전 덮어쓰기 가드용 — 대상 파일의 현재 frontmatter(title)를
+// 읽어 이 편집 세션이 시작됐을 때와 비교한다. 파일이 없거나 읽을 수 없으면
+// null(가드는 "존재하는 파일과 다를 때만" 차단하므로 호출부에서 그대로 통과시킨다).
+export async function getContentFile(
+  path: string,
+  branch: string = BRANCH,
+): Promise<string | null> {
+  const octokit = getOctokit();
+  const { owner, repo } = repoParts();
+  try {
+    const res = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref: branch,
+    });
+    if (Array.isArray(res.data) || res.data.type !== "file") return null;
+    return Buffer.from(res.data.content, "base64").toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
 // 파일명이 콘텐츠 해시라 경로가 곧 내용의 지문이다. 이미 존재하면 업로드된
 // 바이트가 이미 동일하다는 뜻이므로 재커밋 없이 그대로 성공 처리한다(멱등).
 // 동일 경로에 sha 없이 createOrUpdateFileContents를 호출하면 GitHub가

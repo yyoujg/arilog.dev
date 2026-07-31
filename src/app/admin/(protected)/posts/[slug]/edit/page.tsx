@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getPostBySlug } from "@/lib/mdx";
+import { getAllPostsForAdmin, getPostBySlug } from "@/lib/mdx";
 import { PostForm } from "@/components/admin/post-form";
 
 export default async function EditPostPage(
@@ -11,10 +11,14 @@ export default async function EditPostPage(
   if (!post) notFound();
 
   const { content, ...meta } = post;
+  const existingCategories = [
+    ...new Set(getAllPostsForAdmin().map((p) => p.category)),
+  ];
   return (
-    <div>
-      <h1 className="mb-6 text-xl font-semibold">{meta.title} 수정</h1>
-      <PostForm mode="edit" initial={{ ...meta, body: content }} />
-    </div>
+    <PostForm
+      mode="edit"
+      initial={{ ...meta, body: content }}
+      existingCategories={existingCategories}
+    />
   );
 }

@@ -17,7 +17,13 @@ import {
   deleteContentFile,
   contentFileExists,
   commitImage,
+  getContentFile,
 } from "@/lib/admin/github";
+import {
+  checkCreateSlugConflict,
+  checkUpdateTarget,
+  checkUpdateConflict,
+} from "@/lib/admin/post-guards";
 import { MdxRenderer } from "@/components/blog/mdx-renderer";
 
 // MIME으로 실제 저장 확장자를 정한다(파일명 위장 방지). 원본 파일명 확장자도
@@ -43,6 +49,15 @@ export interface PostFormInput {
   series?: string;
   draft: boolean;
   body: string;
+}
+
+// 편집 저장을 "편집을 시작한 글"에 고정하는 가드. originalSlug/originalTitle은
+// 클라이언트가 매 렌더 initial prop에서 새로 읽어 넘긴다(state로 들고 있지
+// 않음 — mount 시점에 굳어 stale해지는 걸 피하기 위함, post-form.tsx 참고).
+export interface UpdatePostGuard {
+  originalSlug: string;
+  originalTitle: string;
+  confirmOverwrite?: boolean;
 }
 
 export interface ProjectFormInput {
@@ -108,7 +123,36 @@ async function validateImagesOnGitHub(refs: ImageRef[]): Promise<void> {
   );
 }
 
+// 클라이언트 required 속성과 별개로 서버에서 재검증 — 필수 필드가 빈 문자열로
+// 넘어와도(폼 우회 등) 저장을 막고 어떤 필드가 비었는지 알려준다.
+// frontmatterSchema(lib/frontmatter.ts)는 과거 글을 읽기 위해 category를
+// 기본값으로 채우지만, 새로 쓰는 글은 여기서 필수로 강제한다.
+function assertRequiredPostFields(input: PostFormInput): void {
+  const missing = (
+    [
+      ["title", input.title],
+      ["date", input.date],
+      ["category", input.category],
+    ] as const
+  )
+    .filter(([, value]) => !value.trim())
+    .map(([field]) => field);
+
+  if (missing.length) {
+    throw new Error(`필수 필드가 비어 있습니다: ${missing.join(", ")}`);
+  }
+}
+
+async function readExistingTitle(path: string): Promise<string | null> {
+  const raw = await getContentFile(path);
+  if (raw === null) return null;
+  const { data } = matter(raw);
+  return typeof data.title === "string" ? data.title : null;
+}
+
 async function buildFileContent(input: PostFormInput): Promise<string> {
+  assertRequiredPostFields(input);
+
   const file = `posts/${input.slug}.mdx`;
   const frontmatterData: Record<string, unknown> = {
     title: input.title,
@@ -116,7 +160,7 @@ async function buildFileContent(input: PostFormInput): Promise<string> {
     date: input.date,
     category: input.category,
     tags: input.tags,
-    draft: input.draft,
+    draft: input.draft ?? false,
   };
   if (input.thumbnail) frontmatterData.thumbnail = input.thumbnail;
   if (input.series) frontmatterData.series = input.series;
@@ -165,16 +209,18 @@ async function buildProjectFileContent(
 
 export async function createPost(
   input: PostFormInput,
-): Promise<{ error: string } | undefined> {
+): Promise<{ error: string; conflict?: true } | undefined> {
   try {
     await requireAdmin();
     assertValidSlug(input.slug);
-    const raw = await buildFileContent(input);
-    await commitContentFile(
-      `content/posts/${input.slug}.mdx`,
-      raw,
-      `feat: ${input.title} 포스트 추가`,
+    const path = `content/posts/${input.slug}.mdx`;
+    const conflict = checkCreateSlugConflict(
+      await contentFileExists(path),
+      input.slug,
     );
+    if (conflict) throw new Error(conflict);
+    const raw = await buildFileContent(input);
+    await commitContentFile(path, raw, `feat: ${input.title} 포스트 추가`);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "알 수 없는 오류" };
   }
@@ -183,16 +229,29 @@ export async function createPost(
 
 export async function updatePost(
   input: PostFormInput,
-): Promise<{ error: string } | undefined> {
+  guard: UpdatePostGuard,
+): Promise<{ error: string; conflict?: true } | undefined> {
   try {
     await requireAdmin();
+    assertValidSlug(guard.originalSlug);
     assertValidSlug(input.slug);
-    const raw = await buildFileContent(input);
-    await commitContentFile(
-      `content/posts/${input.slug}.mdx`,
-      raw,
-      `feat: ${input.title} 포스트 수정`,
+
+    const targetError = checkUpdateTarget(input.slug, guard.originalSlug);
+    if (targetError) throw new Error(targetError);
+
+    const path = `content/posts/${guard.originalSlug}.mdx`;
+    const currentTitle = await readExistingTitle(path);
+    const conflictError = checkUpdateConflict(
+      currentTitle,
+      guard.originalTitle,
+      guard.confirmOverwrite ?? false,
     );
+    if (conflictError) {
+      return { error: conflictError, conflict: true };
+    }
+
+    const raw = await buildFileContent(input);
+    await commitContentFile(path, raw, `feat: ${input.title} 포스트 수정`);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "알 수 없는 오류" };
   }

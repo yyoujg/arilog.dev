@@ -10,6 +10,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 
 import type { PostMeta } from "@/types/post";
 import {
@@ -19,30 +20,62 @@ import {
   uploadImage,
 } from "@/lib/admin/actions";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { TagInput } from "@/components/admin/tag-input";
+import { cn } from "@/lib/utils";
 
 const PREVIEW_DEBOUNCE_MS = 400;
 // 서버 assertValidSlug(src/lib/admin/actions.tsx)와 동일한 kebab-case 규칙.
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
+// 영문 제목에서만 의미 있는 kebab-case를 뽑아낼 수 있다. 한글 제목은 로마자
+// 변환 없이는 슬러그화가 불가능해 결과가 비어 있을 수 있다 — 그 경우 사용자가
+// 직접 입력한다(항상 수동 편집 가능).
+function slugify(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 interface PostFormProps {
   mode: "create" | "edit";
   initial?: PostMeta & { body: string };
+  existingCategories?: string[];
 }
 
-export function PostForm({ mode, initial }: PostFormProps) {
+export function PostForm({
+  mode,
+  initial,
+  existingCategories = [],
+}: PostFormProps) {
   const [slug, setSlug] = useState(initial?.slug.replace(/^posts\//, "") ?? "");
+  const [slugTouched, setSlugTouched] = useState(mode === "edit");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [date, setDate] = useState(initial?.date ?? "");
   const [category, setCategory] = useState(initial?.category ?? "");
-  const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [thumbnail, setThumbnail] = useState(initial?.thumbnail ?? "");
   const [series, setSeries] = useState(initial?.series ?? "");
-  const [draft, setDraft] = useState(initial?.draft ?? true);
+  const [draft, setDraft] = useState(initial?.draft ?? false);
   const [body, setBody] = useState(initial?.body ?? "");
+  const [attempted, setAttempted] = useState(false);
+  const [conflict, setConflict] = useState(false);
+
+  // state로 들고 있지 않고 매 렌더 initial prop에서 직접 계산한다 — useState
+  // 초깃값은 mount 시점에만 굳어, 같은 컴포넌트 인스턴스가 재사용될 경우(예:
+  // 클라이언트 내비게이션) 이전 글의 값을 들고 있을 위험이 있다. props는
+  // 항상 최신이므로 "지금 이 페이지가 로드한 글"과 절대 어긋나지 않는다.
+  const originalSlug = initial?.slug.replace(/^posts\//, "") ?? "";
+  const originalTitle = initial?.title ?? "";
 
   const [preview, setPreview] = useState<ReactNode>(null);
   const [isPreviewPending, startPreviewTransition] = useTransition();
@@ -103,6 +136,18 @@ export function PostForm({ mode, initial }: PostFormProps) {
     };
   }, [body]);
 
+  function handleTitleChange(next: string) {
+    setTitle(next);
+    if (mode === "create" && !slugTouched) {
+      setSlug(slugify(next));
+    }
+  }
+
+  function handleSlugChange(next: string) {
+    setSlugTouched(true);
+    setSlug(next);
+  }
+
   function handleBodyChange(next: string) {
     setBody(next);
   }
@@ -149,8 +194,7 @@ export function PostForm({ mode, initial }: PostFormProps) {
     e.target.value = "";
   }
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  function submit(confirmOverwrite: boolean) {
     setError(null);
     const input = {
       slug,
@@ -158,189 +202,281 @@ export function PostForm({ mode, initial }: PostFormProps) {
       description,
       date,
       category,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
+      tags,
       thumbnail: thumbnail || undefined,
       series: series || undefined,
       draft,
       body,
     };
     startSubmitTransition(async () => {
-      const action = mode === "create" ? createPost : updatePost;
-      const result = await action(input);
-      if (result?.error) setError(result.error);
+      const result =
+        mode === "create"
+          ? await createPost(input)
+          : await updatePost(input, {
+              originalSlug,
+              originalTitle,
+              confirmOverwrite,
+            });
+      if (result?.error) {
+        setError(result.error);
+        setConflict(Boolean(result.conflict));
+      } else {
+        setConflict(false);
+      }
     });
   }
 
-  const slugValid = SLUG_PATTERN.test(slug);
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setAttempted(true);
+    if (tags.length === 0) {
+      setError("최소 하나의 태그가 필요합니다");
+      return;
+    }
+    if (
+      draft &&
+      !window.confirm("비공개(임시저장)로 저장됩니다. 계속할까요?")
+    ) {
+      return;
+    }
+    submit(false);
+  }
+
+  function handleConfirmOverwrite() {
+    submit(true);
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-2">
-      <div className="flex flex-col gap-4">
-        <div className="grid gap-1.5">
-          <Label htmlFor="slug">slug (파일명)</Label>
-          <Input
-            id="slug"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            disabled={mode === "edit"}
-            pattern={SLUG_PATTERN.source}
-            placeholder="my-new-post"
-            required
-          />
+    <div className="flex flex-col gap-6">
+      <div className="bg-background/95 border-border sticky top-0 z-10 flex items-center justify-between gap-4 border-b py-3 backdrop-blur">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="text-muted-foreground shrink-0 text-sm">
+            {mode === "create" ? "새 글" : "글 수정"}
+          </span>
+          <span className="truncate font-semibold">{title || "제목 없음"}</span>
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="title">title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="description">description</Label>
-          <Input
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="date">date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="category">category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="tags">tags (콤마로 구분)</Label>
-          <Input
-            id="tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="React, 트러블슈팅"
-            required
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="thumbnail">thumbnail (선택)</Label>
-            <Input
-              id="thumbnail"
-              value={thumbnail}
-              onChange={(e) => setThumbnail(e.target.value)}
-              placeholder="/images/posts/..."
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="series">series (선택)</Label>
-            <Input
-              id="series"
-              value={series}
-              onChange={(e) => setSeries(e.target.value)}
-            />
-          </div>
-        </div>
-        <Label htmlFor="draft" className="w-fit">
-          <input
-            id="draft"
-            type="checkbox"
-            checked={draft}
-            onChange={(e) => setDraft(e.target.checked)}
-            className="size-4"
-          />
-          draft
-        </Label>
-        <div className="grid gap-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="body">본문 (MDX)</Label>
-            <label
-              className={
-                slugValid
-                  ? "text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-4"
-                  : "text-muted-foreground/50 cursor-not-allowed text-xs underline underline-offset-4"
-              }
-            >
-              {isUploadPending ? "업로드 중..." : "이미지 업로드"}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                onChange={handleFileInputChange}
-                disabled={isUploadPending || !slugValid}
-                className="sr-only"
-              />
-            </label>
-          </div>
-          <p
-            className={
-              slugValid
-                ? "text-muted-foreground text-xs"
-                : "text-destructive text-xs"
-            }
+        <div className="flex shrink-0 items-center gap-3">
+          {isSubmitPending && (
+            <span className="text-muted-foreground text-xs">저장 중...</span>
+          )}
+          <Link
+            href="/admin/posts"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            {slugValid
-              ? "이미지는 배포 후 본문에 반영됩니다."
-              : "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요."}
-          </p>
-          {previewUrl && (
-            // eslint-disable-next-line @next/next/no-img-element -- objectURL은 next/image 최적화 대상이 아님
-            <img
-              src={previewUrl}
-              alt="업로드한 이미지 미리보기"
-              className="border-border h-20 w-20 rounded-md border object-cover"
-            />
+            취소
+          </Link>
+          <Button type="submit" form="post-form" disabled={isSubmitPending}>
+            {mode === "create" ? "게시" : "수정 저장"}
+          </Button>
+        </div>
+      </div>
+
+      <form
+        id="post-form"
+        onSubmit={handleSubmit}
+        className="grid gap-8 lg:grid-cols-2"
+      >
+        <div className="flex flex-col gap-8">
+          <section className="flex flex-col gap-4">
+            <h2 className="text-muted-foreground text-sm font-semibold">
+              기본 정보
+            </h2>
+            <div className="grid gap-1.5">
+              <Label htmlFor="title">title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="slug">
+                slug (파일명){mode === "create" && " — 제목에서 자동 생성"}
+              </Label>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                disabled={mode === "edit"}
+                pattern={SLUG_PATTERN.source}
+                placeholder="my-new-post"
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="description">description</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+          </section>
+
+          <section className="border-border flex flex-col gap-4 border-t pt-6">
+            <h2 className="text-muted-foreground text-sm font-semibold">
+              메타
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="date">date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="category">category</Label>
+                <Input
+                  id="category"
+                  list="category-options"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                />
+                <datalist id="category-options">
+                  {existingCategories.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="tags">tags</Label>
+              <TagInput
+                id="tags"
+                value={tags}
+                onChange={setTags}
+                placeholder="React, 트러블슈팅 (Enter로 추가)"
+                className={cn(
+                  attempted && tags.length === 0 && "border-destructive",
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="thumbnail">thumbnail (선택)</Label>
+                <Input
+                  id="thumbnail"
+                  value={thumbnail}
+                  onChange={(e) => setThumbnail(e.target.value)}
+                  placeholder="/images/posts/..."
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="series">series (선택)</Label>
+                <Input
+                  id="series"
+                  value={series}
+                  onChange={(e) => setSeries(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="border-border flex items-center justify-between rounded-md border px-3 py-2">
+              <div className="flex flex-col">
+                <Label htmlFor="draft">공개 상태</Label>
+                <span className="text-muted-foreground text-xs">
+                  {draft ? "비공개(임시저장)" : "공개"}
+                </span>
+              </div>
+              <Switch
+                id="draft"
+                checked={!draft}
+                onChange={(e) => setDraft(!e.target.checked)}
+              />
+            </div>
+          </section>
+
+          <section className="border-border flex flex-col gap-4 border-t pt-6">
+            <h2 className="text-muted-foreground text-sm font-semibold">
+              본문
+            </h2>
+            <div className="grid gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="body">MDX</Label>
+                <label
+                  className={
+                    SLUG_PATTERN.test(slug)
+                      ? "text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-4"
+                      : "text-muted-foreground/50 cursor-not-allowed text-xs underline underline-offset-4"
+                  }
+                >
+                  {isUploadPending ? "업로드 중..." : "이미지 업로드"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={handleFileInputChange}
+                    disabled={isUploadPending || !SLUG_PATTERN.test(slug)}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
+              <p
+                className={
+                  SLUG_PATTERN.test(slug)
+                    ? "text-muted-foreground text-xs"
+                    : "text-destructive text-xs"
+                }
+              >
+                {SLUG_PATTERN.test(slug)
+                  ? "이미지는 배포 후 본문에 반영됩니다."
+                  : "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요."}
+              </p>
+              {previewUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- objectURL은 next/image 최적화 대상이 아님
+                <img
+                  src={previewUrl}
+                  alt="업로드한 이미지 미리보기"
+                  className="border-border h-20 w-20 rounded-md border object-cover"
+                />
+              )}
+              <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+                <Textarea
+                  id="body"
+                  value={body}
+                  onChange={(e) => handleBodyChange(e.target.value)}
+                  className="min-h-[28rem] font-mono text-sm"
+                  required
+                />
+              </div>
+              {uploadError && (
+                <p className="text-destructive text-sm">{uploadError}</p>
+              )}
+            </div>
+          </section>
+
+          {error && (
+            <div className="flex items-center gap-3">
+              <p className="text-destructive text-sm">{error}</p>
+              {conflict && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleConfirmOverwrite}
+                  disabled={isSubmitPending}
+                >
+                  그래도 저장
+                </Button>
+              )}
+            </div>
           )}
-          <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-            <Textarea
-              id="body"
-              value={body}
-              onChange={(e) => handleBodyChange(e.target.value)}
-              className="min-h-[28rem] font-mono text-sm"
-              required
-            />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-sm">
+            미리보기{isPreviewPending && " (갱신 중...)"}
+          </span>
+          <div className="prose border-border max-w-none rounded-md border p-4">
+            {preview}
           </div>
-          {uploadError && (
-            <p className="text-destructive text-sm">{uploadError}</p>
-          )}
         </div>
-
-        {error && <p className="text-destructive text-sm">{error}</p>}
-
-        <Button type="submit" disabled={isSubmitPending}>
-          {isSubmitPending
-            ? "저장 중..."
-            : mode === "create"
-              ? "게시"
-              : "수정 저장"}
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-muted-foreground text-sm">
-          미리보기{isPreviewPending && " (갱신 중...)"}
-        </span>
-        <div className="prose border-border max-w-none rounded-md border p-4">
-          {preview}
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
