@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 
 import { getAllPostsForAdmin } from "@/lib/mdx";
@@ -50,7 +51,7 @@ export default function AdminPostsPage() {
               <thead>
                 <tr className="border-border border-b text-left">
                   <th className="py-3 pr-4 font-semibold">제목</th>
-                  <th className="py-3 pr-4 font-semibold">날짜</th>
+                  <th className="py-3 pr-4 text-right font-semibold">날짜</th>
                   <th className="py-3 pr-4 font-semibold">카테고리</th>
                   <th className="py-3 pr-4 font-semibold">상태</th>
                   <th className="py-3 pr-4 font-semibold">관리</th>
@@ -66,7 +67,9 @@ export default function AdminPostsPage() {
                       className="border-border hover:bg-accent/50 border-b transition-colors"
                     >
                       <td className="py-3 pr-4">{post.title}</td>
-                      <td className="py-3 pr-4 tabular-nums">{post.date}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">
+                        {post.date}
+                      </td>
                       <td className="py-3 pr-4">
                         <Badge variant={categoryVariant(post.category)}>
                           {post.category}
@@ -100,6 +103,7 @@ export default function AdminPostsPage() {
                                 size: "sm",
                               })}
                             >
+                              <Pencil />
                               수정
                             </Link>
                             <DeletePostDialog
@@ -152,6 +156,7 @@ export default function AdminPostsPage() {
                             size: "sm",
                           })}
                         >
+                          <Pencil />
                           수정
                         </Link>
                         <DeletePostDialog slug={filename} title={post.title} />
