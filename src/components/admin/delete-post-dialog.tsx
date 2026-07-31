@@ -39,7 +39,11 @@ export function DeletePostDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+        >
           <Trash2 />
           삭제
         </Button>

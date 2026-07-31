@@ -1,25 +1,24 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import type { VariantProps } from "class-variance-authority";
 
 import { getAllPostsForAdmin } from "@/lib/mdx";
 import { buttonVariants } from "@/components/ui/button-variants";
-import { Badge, type badgeVariants } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { DeletePostDialog } from "@/components/admin/delete-post-dialog";
 
-// 카테고리는 자유 문자열이라 고정 색 매핑이 없다. 임의 색을 새로 만드는 대신
-// 기존 배지 톤(4종)을 이름 해시로 순환 배정 — 항상 텍스트 라벨과 함께 표시되므로
-// 색만으로 카테고리를 구분하지 않는다(접근성 원칙 유지).
-const CATEGORY_VARIANTS: NonNullable<
-  VariantProps<typeof badgeVariants>["variant"]
->[] = ["default", "secondary", "muted", "outline"];
-
-function categoryVariant(category: string) {
-  let hash = 0;
-  for (let i = 0; i < category.length; i++) {
-    hash = (hash * 31 + category.charCodeAt(i)) | 0;
-  }
-  return CATEGORY_VARIANTS[Math.abs(hash) % CATEGORY_VARIANTS.length];
+// 공개/비공개 상태를 같은 outline 뱃지 셸 + 점 색상만 다르게 표시한다.
+// 카테고리별 색분기(과거 해시 배정)도 이 파일에서 한 뱃지 스타일로 통일 —
+// 한 행에 형광 fill이 여러 개 섞이는 걸 막기 위함(뱃지가 튀는 요소는
+// hover 등 최소한으로 제한).
+function StatusBadge({ published }: { published: boolean }) {
+  return (
+    <Badge variant="outline" className="gap-1.5">
+      <span
+        className={`size-1.5 rounded-full ${published ? "bg-success" : "bg-muted-foreground"}`}
+      />
+      {published ? "공개" : "비공개"}
+    </Badge>
+  );
 }
 
 export default function AdminPostsPage() {
@@ -50,11 +49,19 @@ export default function AdminPostsPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-border border-b text-left">
-                  <th className="py-3 pr-4 font-semibold">제목</th>
-                  <th className="py-3 pr-4 text-right font-semibold">날짜</th>
-                  <th className="py-3 pr-4 font-semibold">카테고리</th>
-                  <th className="py-3 pr-4 font-semibold">상태</th>
-                  <th className="py-3 pr-4 font-semibold">관리</th>
+                  <th className="w-full py-3 pr-4 font-semibold">제목</th>
+                  <th className="py-3 pr-4 text-right font-semibold whitespace-nowrap">
+                    날짜
+                  </th>
+                  <th className="py-3 pr-4 font-semibold whitespace-nowrap">
+                    카테고리
+                  </th>
+                  <th className="py-3 pr-4 font-semibold whitespace-nowrap">
+                    상태
+                  </th>
+                  <th className="py-3 pr-4 font-semibold whitespace-nowrap">
+                    관리
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -67,33 +74,29 @@ export default function AdminPostsPage() {
                       className="border-border hover:bg-accent/50 border-b transition-colors"
                     >
                       <td className="py-3 pr-4">{post.title}</td>
-                      <td className="py-3 pr-4 text-right tabular-nums">
+                      <td className="py-3 pr-4 text-right whitespace-nowrap tabular-nums">
                         {post.date}
                       </td>
-                      <td className="py-3 pr-4">
-                        <Badge variant={categoryVariant(post.category)}>
-                          {post.category}
-                        </Badge>
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        <Badge variant="outline">{post.category}</Badge>
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1">
-                          {post.hidden ? (
-                            <Badge variant="muted">
-                              비공개
-                              {post.hiddenReason && ` (${post.hiddenReason})`}
-                            </Badge>
-                          ) : (
-                            <Badge variant="success">공개</Badge>
+                          <StatusBadge published={!post.hidden} />
+                          {post.hidden && post.hiddenReason && (
+                            <span className="text-muted-foreground text-xs whitespace-normal">
+                              {post.hiddenReason}
+                            </span>
                           )}
                           {post.missingFields.length > 0 && (
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-xs whitespace-normal">
                               누락 필드 기본값 처리:{" "}
                               {post.missingFields.join(", ")}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 whitespace-nowrap">
                         {managed ? (
                           <div className="flex gap-2">
                             <Link
@@ -133,18 +136,14 @@ export default function AdminPostsPage() {
                   className="border-border flex flex-col gap-2 rounded-md border p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold">{post.title}</span>
-                    {post.hidden ? (
-                      <Badge variant="muted">비공개</Badge>
-                    ) : (
-                      <Badge variant="success">공개</Badge>
-                    )}
+                    <span className="min-w-0 flex-1 font-semibold">
+                      {post.title}
+                    </span>
+                    <StatusBadge published={!post.hidden} />
                   </div>
                   <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
-                    <span>{post.date}</span>
-                    <Badge variant={categoryVariant(post.category)}>
-                      {post.category}
-                    </Badge>
+                    <span className="whitespace-nowrap">{post.date}</span>
+                    <Badge variant="outline">{post.category}</Badge>
                   </div>
                   <div className="flex gap-2 pt-1">
                     {managed ? (
