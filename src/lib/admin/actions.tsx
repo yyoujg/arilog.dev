@@ -11,7 +11,7 @@ import { frontmatterSchema, validateFrontmatter } from "@/lib/frontmatter";
 import { projectSchema } from "@/lib/project-frontmatter";
 import { RESERVED_SLUGS } from "@/lib/projects";
 import { lintMdx } from "@/lib/lint-mdx";
-import { validateImages, extractImageSrcs } from "@/lib/validate-images";
+import { extractImageSrcs, type ImageRef } from "@/lib/validate-images";
 import {
   commitContentFile,
   deleteContentFile,
@@ -76,7 +76,39 @@ function assertValidSlug(slug: string): void {
   }
 }
 
-function buildFileContent(input: PostFormInput): string {
+// 게시 시 본문·thumbnail 이미지 검증. lib/validate-images.ts의 validateImages는
+// loadPosts/loadProjects(next build 시점)에서 fs(public/)로 검증하는데, 그 fs는
+// 그 build가 만드는 배포 스냅샷과 항상 일치해 정확하다. 하지만 이 함수는 admin
+// 서버 액션 — Vercel 서버리스 함수 안에서 실행되며, 그 함수의 fs(/var/task/public)는
+// "지난 배포" 시점 스냅샷이라 admin이 방금 Octokit으로 커밋한 이미지가 있을 수
+// 없다(다음 배포가 끝나야 나타난다). 그래서 fs가 아니라 지금 GitHub 레포에 실제
+// 커밋됐는지(contentFileExists)로 검증한다 — uploadImage가 이 호출보다 먼저
+// 끝나 있으므로(별도 요청) 시점 문제 없이 항상 최신 상태를 본다.
+async function validateImagesOnGitHub(refs: ImageRef[]): Promise<void> {
+  const checked = await Promise.all(
+    refs
+      .filter(({ src }) => !/^https?:\/\//.test(src))
+      .map(async ({ file, src }) => ({
+        file,
+        src,
+        exists: await contentFileExists(`public${src}`),
+      })),
+  );
+
+  const errors = checked
+    .filter((c) => !c.exists)
+    .map(
+      (c) =>
+        `  - ${c.file}\n      이미지: ${c.src}\n      GitHub 레포에 커밋된 파일 없음: public${c.src}`,
+    );
+
+  if (!errors.length) return;
+  throw new Error(
+    `이미지 검증 실패 (${errors.length}건):\n${errors.join("\n")}`,
+  );
+}
+
+async function buildFileContent(input: PostFormInput): Promise<string> {
   const file = `posts/${input.slug}.mdx`;
   const frontmatterData: Record<string, unknown> = {
     title: input.title,
@@ -96,12 +128,14 @@ function buildFileContent(input: PostFormInput): string {
 
   const imageRefs = extractImageSrcs(input.body).map((src) => ({ file, src }));
   if (input.thumbnail) imageRefs.push({ file, src: input.thumbnail });
-  validateImages(imageRefs);
+  await validateImagesOnGitHub(imageRefs);
 
   return raw;
 }
 
-function buildProjectFileContent(input: ProjectFormInput): string {
+async function buildProjectFileContent(
+  input: ProjectFormInput,
+): Promise<string> {
   const file = `projects/${input.slug}.mdx`;
   const frontmatterData: Record<string, unknown> = {
     title: input.title,
@@ -124,7 +158,7 @@ function buildProjectFileContent(input: ProjectFormInput): string {
 
   const imageRefs = extractImageSrcs(input.body).map((src) => ({ file, src }));
   imageRefs.push({ file, src: input.thumbnail });
-  validateImages(imageRefs);
+  await validateImagesOnGitHub(imageRefs);
 
   return raw;
 }
@@ -135,7 +169,7 @@ export async function createPost(
   try {
     await requireAdmin();
     assertValidSlug(input.slug);
-    const raw = buildFileContent(input);
+    const raw = await buildFileContent(input);
     await commitContentFile(
       `content/posts/${input.slug}.mdx`,
       raw,
@@ -153,7 +187,7 @@ export async function updatePost(
   try {
     await requireAdmin();
     assertValidSlug(input.slug);
-    const raw = buildFileContent(input);
+    const raw = await buildFileContent(input);
     await commitContentFile(
       `content/posts/${input.slug}.mdx`,
       raw,
@@ -195,7 +229,7 @@ export async function createProject(
     if (await contentFileExists(path)) {
       throw new Error(`이미 존재하는 slug입니다: ${input.slug}`);
     }
-    const raw = buildProjectFileContent(input);
+    const raw = await buildProjectFileContent(input);
     await commitContentFile(path, raw, `feat: ${input.title} 프로젝트 추가`);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "알 수 없는 오류" };
@@ -209,7 +243,7 @@ export async function updateProject(
   try {
     await requireAdmin();
     assertValidSlug(input.slug);
-    const raw = buildProjectFileContent(input);
+    const raw = await buildProjectFileContent(input);
     await commitContentFile(
       `content/projects/${input.slug}.mdx`,
       raw,
