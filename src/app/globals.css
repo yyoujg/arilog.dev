@@ -32,6 +32,10 @@
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
 
+  /* admin 공개 상태 배지 전용. 대비 실측: 흰 텍스트 기준 5.8:1(WCAG 4.5:1 여유 통과) */
+  --success: oklch(0.48 0.15 152);
+  --success-foreground: oklch(0.985 0 0);
+
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -66,6 +70,11 @@
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
 
+  /* 다크 표면에서 밝은 초록+흰 텍스트는 대비가 무너져(~2:1) destructive와 반대로
+     어두운 초록을 쓴다. 대비 실측: 흰 텍스트 기준 6.4:1 */
+  --success: oklch(0.45 0.16 150);
+  --success-foreground: oklch(0.985 0 0);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -98,6 +107,9 @@
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
 
   --color-border: var(--border);
   --color-input: var(--input);

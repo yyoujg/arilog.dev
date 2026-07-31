@@ -23,8 +23,17 @@ function walk(dir: string): string[] {
   });
 }
 
-function loadPosts(): Post[] {
-  const entries = walk(CONTENT_DIR).map((file) => {
+interface PostEntry {
+  post: Post;
+  file: string;
+  raw: string;
+  // 파싱(기본값 채움) 이전 원본 frontmatter. admin 목록에서 "어떤 필드가
+  // 원래 없어서 기본값으로 채워졌는지" 보여주기 위해서만 쓴다.
+  rawFrontmatter: Record<string, unknown>;
+}
+
+function loadEntries(): PostEntry[] {
+  return walk(CONTENT_DIR).map((file) => {
     const raw = fs.readFileSync(file, "utf8");
     const { data, content } = matter(raw);
     const relative = path.relative(CONTENT_DIR, file);
@@ -38,10 +47,26 @@ function loadPosts(): Post[] {
       content,
       readingTime: readingTime(content),
     } satisfies Post;
-    return { post, file: relative, raw };
+    return {
+      post,
+      file: relative,
+      raw,
+      rawFrontmatter: (typeof data === "object" && data !== null
+        ? data
+        : {}) as Record<string, unknown>,
+    };
   });
+}
 
-  const published = entries
+// 모듈 레벨 캐시 — 빌드 중 중복 파싱 방지. draft 필터 이전의 전체 목록.
+let entriesCache: PostEntry[] | null = null;
+function allEntries(): PostEntry[] {
+  if (!entriesCache) entriesCache = loadEntries();
+  return entriesCache;
+}
+
+function loadPosts(): Post[] {
+  const published = allEntries()
     .filter((e) => !(isProd && e.post.draft))
     .sort((a, b) =>
       a.post.date < b.post.date ? 1 : a.post.date > b.post.date ? -1 : 0,
@@ -86,6 +111,46 @@ function toMeta({ content: _content, ...meta }: Post): PostMeta {
 
 export function getAllPosts(): PostMeta[] {
   return allPosts().map(toMeta);
+}
+
+export interface AdminPostSummary extends PostMeta {
+  // draft 표시 여부. 실제 프로덕션 빌드도 draft만 숨기므로 이 값과 항상 일치한다.
+  hidden: boolean;
+  hiddenReason: string | null;
+  // frontmatterSchema가 기본값으로 채운, 원본엔 없던 필드 목록.
+  missingFields: string[];
+}
+
+// admin 목록 전용 — getAllPosts()와 달리 production에서도 draft 글을 전부
+// 보여준다. getAllPosts()만 썼을 때는 배포된 admin 화면에서 방금 만든 draft
+// 글이 통째로 안 보여, 작성자가 자기 글을 찾아 공개 전환할 방법이 없었다.
+export function getAllPostsForAdmin(): AdminPostSummary[] {
+  return allEntries()
+    .sort((a, b) =>
+      a.post.date < b.post.date ? 1 : a.post.date > b.post.date ? -1 : 0,
+    )
+    .map((e) => {
+      const missingFields: string[] = [];
+      if (typeof e.rawFrontmatter.category !== "string") {
+        missingFields.push("category");
+      }
+      if (typeof e.rawFrontmatter.draft !== "boolean") {
+        missingFields.push("draft");
+      }
+      if (
+        typeof e.rawFrontmatter.description !== "string" &&
+        typeof e.rawFrontmatter.summary !== "string"
+      ) {
+        missingFields.push("description");
+      }
+
+      return {
+        ...toMeta(e.post),
+        hidden: e.post.draft,
+        hiddenReason: e.post.draft ? "draft로 표시돼 비공개" : null,
+        missingFields,
+      };
+    });
 }
 
 export function getPostBySlug(slug: string): Post | undefined {

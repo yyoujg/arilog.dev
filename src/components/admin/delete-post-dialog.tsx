@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 
 import { deletePost } from "@/lib/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function DeletePostDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive" size="sm">
+          <Trash2 />
           삭제
         </Button>
       </DialogTrigger>
