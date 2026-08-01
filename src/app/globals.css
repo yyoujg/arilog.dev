@@ -146,6 +146,9 @@
   }
   html {
     scroll-behavior: smooth;
+    /* 스크롤바 유무로 콘텐츠 폭이 달라지는 것을 막는다(예: admin 탭 전환 시
+       세로 스크롤 등장/소멸로 mx-auto 컨테이너가 좌우로 밀리는 문제). */
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground;
