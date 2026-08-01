@@ -6,6 +6,7 @@ import {
   useState,
   useTransition,
   type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import Link from "next/link";
@@ -57,6 +58,11 @@ function slugify(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
+const FORM_TABS = [
+  { id: "meta", label: "기본 정보" },
+  { id: "body", label: "본문" },
+] as const;
+
 interface PostFormProps {
   mode: "create" | "edit";
   initial?: PostMeta & { body: string };
@@ -82,6 +88,7 @@ export function PostForm({
   const [attempted, setAttempted] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
+  const [tab, setTab] = useState<"meta" | "body">("meta");
 
   // state로 들고 있지 않고 매 렌더 initial prop에서 직접 계산한다 — useState
   // 초깃값은 mount 시점에만 굳어, 같은 컴포넌트 인스턴스가 재사용될 경우(예:
@@ -263,6 +270,7 @@ export function PostForm({
     setAttempted(true);
     if (tags.length === 0) {
       setError("최소 하나의 태그가 필요합니다");
+      setTab("meta");
       return;
     }
     if (
@@ -276,6 +284,18 @@ export function PostForm({
 
   function handleConfirmOverwrite() {
     submit(true);
+  }
+
+  function handleTabKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const currentIndex = FORM_TABS.findIndex((t) => t.id === tab);
+    const nextIndex =
+      (currentIndex + (e.key === "ArrowRight" ? 1 : -1) + FORM_TABS.length) %
+      FORM_TABS.length;
+    const nextTab = FORM_TABS[nextIndex].id;
+    setTab(nextTab);
+    document.getElementById(`post-form-tab-${nextTab}`)?.focus();
   }
 
   return (
@@ -308,7 +328,41 @@ export function PostForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-8"
       >
-        <div className="grid max-w-2xl gap-8">
+        <div
+          role="tablist"
+          aria-label="글 작성 탭"
+          onKeyDown={handleTabKeyDown}
+          className="border-border flex gap-1 border-b"
+        >
+          {FORM_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              id={`post-form-tab-${t.id}`}
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls={`post-form-panel-${t.id}`}
+              tabIndex={tab === t.id ? 0 : -1}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm font-medium",
+                tab === t.id
+                  ? "border-primary text-foreground"
+                  : "text-muted-foreground border-transparent",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          id="post-form-panel-meta"
+          role="tabpanel"
+          aria-labelledby="post-form-tab-meta"
+          hidden={tab !== "meta"}
+          className="grid gap-8 lg:grid-cols-2"
+        >
           <section className="flex flex-col gap-4">
             <h2 className="text-muted-foreground text-sm font-semibold">
               기본 정보
@@ -347,7 +401,7 @@ export function PostForm({
             </div>
           </section>
 
-          <section className="border-border flex flex-col gap-4 border-t pt-6">
+          <section className="border-border flex flex-col gap-4 border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
             <h2 className="text-muted-foreground text-sm font-semibold">
               메타
             </h2>
@@ -425,77 +479,96 @@ export function PostForm({
           </section>
         </div>
 
-        <section className="border-border flex flex-col gap-4 border-t pt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm font-semibold">
-              본문
-            </h2>
-            <div className="border-border flex gap-0.5 rounded-md border p-0.5 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setMobileTab("write")}
-                className={cn(
-                  "rounded-sm px-2.5 py-1 text-xs font-medium",
-                  mobileTab === "write"
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                쓰기
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileTab("preview")}
-                className={cn(
-                  "rounded-sm px-2.5 py-1 text-xs font-medium",
-                  mobileTab === "preview"
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                미리보기
-              </button>
-            </div>
-          </div>
-
-          <p
-            className={
-              SLUG_PATTERN.test(slug)
-                ? "text-muted-foreground text-xs"
-                : "text-destructive text-xs"
-            }
-          >
-            {SLUG_PATTERN.test(slug)
-              ? "이미지는 드롭·붙여넣기·툴바 삽입 시 레포에 바로 커밋됩니다."
-              : "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요."}
-          </p>
-          {uploadError && (
-            <p className="text-destructive text-sm">{uploadError}</p>
-          )}
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className={cn(mobileTab !== "write" && "hidden lg:block")}>
-              <MdxEditor
-                value={body}
-                onChange={setBody}
-                onImageFile={handleImageFile}
-              />
-            </div>
-            <div className={cn(mobileTab !== "preview" && "hidden lg:block")}>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted-foreground text-sm">
-                  미리보기{isPreviewPending && " (갱신 중...)"}
-                </span>
-                <div className="prose border-border h-[28rem] max-w-none overflow-y-auto rounded-md border p-4">
-                  {previewError && (
-                    <p className="text-destructive text-sm">{previewError}</p>
+        <div
+          id="post-form-panel-body"
+          role="tabpanel"
+          aria-labelledby="post-form-tab-body"
+          hidden={tab !== "body"}
+          className="min-w-0"
+        >
+          <section className="border-border flex flex-col gap-4 [overscroll-behavior-x:contain] border-t pt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-muted-foreground text-sm font-semibold">
+                본문
+              </h2>
+              <div className="border-border flex gap-0.5 rounded-md border p-0.5 lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab("write")}
+                  className={cn(
+                    "rounded-sm px-2.5 py-1 text-xs font-medium",
+                    mobileTab === "write"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground",
                   )}
-                  {preview}
+                >
+                  쓰기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab("preview")}
+                  className={cn(
+                    "rounded-sm px-2.5 py-1 text-xs font-medium",
+                    mobileTab === "preview"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  미리보기
+                </button>
+              </div>
+            </div>
+
+            <p
+              className={
+                SLUG_PATTERN.test(slug)
+                  ? "text-muted-foreground text-xs"
+                  : "text-destructive text-xs"
+              }
+            >
+              {SLUG_PATTERN.test(slug)
+                ? "이미지는 드롭·붙여넣기·툴바 삽입 시 레포에 바로 커밋됩니다."
+                : "이미지 업로드 전에 유효한 slug(kebab-case)를 먼저 입력하세요."}
+            </p>
+            {uploadError && (
+              <p className="text-destructive text-sm">{uploadError}</p>
+            )}
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div
+                className={cn(
+                  "min-w-0",
+                  mobileTab !== "write" && "hidden lg:block",
+                )}
+              >
+                <MdxEditor
+                  value={body}
+                  onChange={setBody}
+                  onImageFile={handleImageFile}
+                  className="min-w-0 [overscroll-behavior-x:contain]"
+                />
+              </div>
+              <div
+                className={cn(
+                  "min-w-0",
+                  mobileTab !== "preview" && "hidden lg:block",
+                )}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted-foreground text-sm">
+                    미리보기{isPreviewPending && " (갱신 중...)"}
+                  </span>
+                  <div className="prose border-border h-[28rem] max-w-none overflow-x-auto overflow-y-auto [overscroll-behavior-x:contain] rounded-md border p-4">
+                    {previewError && (
+                      <p className="text-destructive text-sm">{previewError}</p>
+                    )}
+                    {preview}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         {error && (
           <div className="flex items-center gap-3">

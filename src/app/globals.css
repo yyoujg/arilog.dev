@@ -258,6 +258,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* admin 에디터(CodeMirror) 가로 스크롤 시 브라우저 뒤로가기(스와이프 내비게이션)로
+   전파되는 것을 막는다. 긴 코드 줄이 있는 .cm-scroller에서 가로 스와이프하면
+   overscroll-behavior 기본값(auto)이 부모 체인을 타고 history 내비게이션을 트리거한다. */
+.cm-editor,
+.cm-scroller {
+  overscroll-behavior-x: contain;
+}
+
 /* 인쇄: 항상 라이트 토큰 강제 + 크롬 숨김 + A4 페이지 */
 @media print {
   /* 다크모드로 인쇄해도 흰 배경/검은 글자가 되도록 토큰을 라이트로 되돌린다 */
