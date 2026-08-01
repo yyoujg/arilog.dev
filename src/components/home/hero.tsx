@@ -18,6 +18,9 @@ export function Hero() {
       </h1>
       <p className="text-muted-foreground mt-3 text-xl">{RESUME.title}</p>
       <p className="mt-4 max-w-xl text-lg">{RESUME.summary}</p>
+      <p className="text-muted-foreground mt-2 max-w-xl">
+        도구의 맹점과 아키텍처의 빈틈을 끝까지 의심하고 실측으로 검증합니다.
+      </p>
 
       <ul className="mt-6 flex flex-wrap gap-1.5">
         {CORE_STACK.map((s) => (

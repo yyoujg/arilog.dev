@@ -10,7 +10,8 @@ import { Pagination } from "@/components/blog/pagination";
 
 export const metadata: Metadata = buildMetadata({
   title: "Blog",
-  description: "프론트엔드 기술 블로그 글 목록.",
+  description:
+    "예약·결제·디자인 시스템·RSC를 다루며 만난 버그와, 도구를 의심해 근본 원인을 검증한 기록.",
   path: "/blog",
 });
 

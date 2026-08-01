@@ -1,0 +1,30 @@
+---
+title: B2C 리뉴얼 — 멤버십 인증·분석 재설계
+summary: Pages Router·Recoil 기반 레거시 B2C를 App Router로 전면 리뉴얼하며 임직원·법인 인증, 분석, 다국어 영역을 담당.
+period: 2025.07 - 2026.04
+role: 영역 담당 (임직원·법인 인증 / GA·GTM / i18n / 바우처 필터)
+stack:
+  - Next.js
+  - Zustand
+  - React Query
+  - Tailwind CSS
+thumbnail: /images/projects/company-project-placeholder.svg
+featured: true
+draft: false
+order: 5
+---
+
+## 문제
+
+임직원·법인 회원은 별도 인증과 만료 관리가 필요했고, 이커머스 이벤트가 GTM에 정합성 없이 수집되고 있었다. 전역 스피너가 모든 로딩을 블로킹해 체감 성능이 나빴다.
+
+## 해결
+
+- 회사명·도메인 검색 기반 인증 모달과 12개월 만료 판정, 재인증/일반회원 전환 플로우 구현
+- GTM dataLayer 헬퍼를 작성해 view_item·add_to_cart·begin_checkout·purchase 이벤트 정합성 수정
+- 전역 스피너를 섹션 단위 스켈레톤으로 분리, next/image·webp 전환
+
+## 효과
+
+- 이커머스 이벤트 정합성 확보로 분석 데이터 신뢰도 개선
+- 인증 만료 관리 자동화로 수동 운영 부담 제거

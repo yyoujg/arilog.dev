@@ -1,0 +1,31 @@
+---
+title: B2C 레거시 리팩토링
+summary: 외주로 개발된 레거시 B2C 서비스에서 회원·인증·예약·결제·마이페이지 전반을 담당하며 구조 개선을 주도.
+period: 2024.01 - 2025.05
+role: 핵심 개발자 (단일 최대 기여자)
+stack:
+  - Next.js
+  - React
+  - Recoil
+thumbnail: /images/projects/company-project-placeholder.svg
+featured: true
+draft: false
+order: 3
+---
+
+## 문제
+
+날짜 상태가 여러 컴포넌트에 분산돼 있고 서로 동기화되지 않아 중복 코드와 props drilling이 누적됐다. 번역은 개발자가 건마다 수기로 반영해 5~10분씩 걸렸다.
+
+## 해결
+
+- 분산된 날짜 상태를 Recoil 단일 모듈(29 atom/selector)로 점진 이관해 중앙화
+- Google Sheet + Sheets API·App Script로 번역 자동화 파이프라인 구축
+- 동시 다발 401을 인터셉터 큐로 직렬화해 리프레시 1회 후 일괄 재시도하도록 개선
+- iOS·Android 웹뷰와 토큰·로그인 양방향 동기화 브릿지 구현
+- hydration mismatch를 mounted state 가드로 해결
+
+## 효과
+
+- 중복 코드 1,854줄 삭제, props drilling 제거
+- 번역 반영 시간 5~10분 → 1분

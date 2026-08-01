@@ -14,9 +14,28 @@ export const metadata: Metadata = buildMetadata({
 });
 
 const INTRO = [
-  "결과값이 이상하면 도구 자체의 한계와 오류를 끝까지 의심하고 검증합니다.",
-  "주어진 기능을 구현하는 것을 넘어, 시스템의 근본 원인을 파악하고 해결하는 데 관심이 있습니다. 도구의 맹점이나 아키텍처의 빈틈을 찾아 안정성을 높이고, 디자인 시스템 구축부터 다국어 자동화까지 팀 생산성을 높이는 개발 환경을 설계해왔습니다.",
-  "React·TypeScript·Next.js 기반으로 예약·결제·멤버십·운영 플랫폼을 개발했고, 멀티테넌트 SaaS를 단독으로 구축했습니다. 복잡한 운영 도메인을 빠르게 구조화하고, 레거시를 사용자 흐름 기준으로 재정리해 중복과 정책 충돌을 구조로 제거하는 작업을 주로 해왔습니다.",
+  "결과값이 이상하다면, 도구 자체의 한계와 오류를 끝까지 의심하고 검증합니다.",
+  "단순히 주어진 기능을 구현하는 것을 넘어, 시스템의 근본 원인을 파악하고 해결하는 프론트엔드 엔지니어입니다. 도구의 맹점이나 아키텍처의 빈틈을 찾아 안정성을 높이고, 디자인 시스템 구축부터 다국어 자동화까지 팀 생산성을 높이는 개발 환경을 설계하는 데 강점이 있습니다.",
+  "React·TypeScript·Next.js 기반으로 예약·결제·멤버십·운영 플랫폼을 개발해왔습니다. 멀티테넌트 SaaS를 단독 구축했고, TanStack Query 기반 서버 상태 관리, GA4/GTM 데이터 수집, 대규모 관리자·고객 서비스 개발 경험을 보유하고 있습니다. 복잡한 운영 도메인을 빠르게 구조화하고, 레거시를 사용자 흐름 기준으로 재정리해 중복·정책 충돌을 구조로 제거합니다.",
+];
+
+// 대표 강점 3가지.
+const STRENGTHS = [
+  {
+    label: "근거 있는 아키텍처 선택",
+    value:
+      "외부 상태 라이브러리 없이 RSC + URL + 경량 Context로 설계(App Router 정석), size-limit CI 가드로 번들 증가분을 정량 검증한 뒤에만 컴포넌트를 승인",
+  },
+  {
+    label: "복잡한 도메인을 구조로 정리",
+    value:
+      "수십 가지 정책 토글 조합을 '정책 그룹'으로 추상화하고, RHF Nested·조건부·동적 배열로 복잡한 입력 UI를 구조화",
+  },
+  {
+    label: "도구를 의심하고 검증하는 원칙",
+    value:
+      "size-limit 게이트가 진입점 파일만 측정해 실제 번들의 1/47만 재던 결함을 직접 발견해 측정 방식을 교체",
+  },
 ];
 
 // 본인 성과 실측치.
@@ -25,8 +44,8 @@ const METRICS = [
   { label: "자동화", value: "번역 반영 5~10분 → 1분" },
   { label: "토큰화", value: "디자인 토큰화로 하드코딩 120 → 6" },
   {
-    label: "측정 오차 발견",
-    value: "size-limit 게이트 오차 1/47~1/85 발견·정정",
+    label: "결함 발견",
+    value: "size-limit 측정 결함(실제 번들의 1/47만 측정) 발견·수정",
   },
 ];
 
@@ -46,15 +65,11 @@ const CAPABILITIES = [
   {
     area: "빌드·품질",
     detail:
-      "Vite · Vitest · Playwright · tsup · size-limit · ESLint/Prettier · CI",
+      "Vite · Vitest · Playwright · tsup · size-limit · ESLint/Prettier · GitLab CI",
   },
   {
     area: "도메인",
     detail: "멀티테넌트 SaaS · 예약/결제 · 인증 · 멤버십 · 운영 어드민",
-  },
-  {
-    area: "빌드 자동화",
-    detail: "컴포넌트 생성·문서·번들측정 자동화 스크립트 설계",
   },
 ];
 
@@ -77,6 +92,23 @@ export default function AboutPage() {
               </p>
             ))}
           </div>
+        </section>
+
+        <section>
+          <SectionTitle>핵심 강점</SectionTitle>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {STRENGTHS.map((item) => (
+              <div
+                key={item.label}
+                className="border-border rounded-lg border p-4"
+              >
+                <dt className="text-sm font-semibold">{item.label}</dt>
+                <dd className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         <section>

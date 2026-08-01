@@ -9,7 +9,7 @@ export const RESUME: Resume = {
   name: SITE.author,
   title: "프론트엔드 개발자",
   summary:
-    "멀티테넌트 예약 SaaS와 운영 시스템을 0→1로 설계·구축하는 3년차 프론트엔드 개발자",
+    "Next.js·React로 멀티테넌트 예약 SaaS와 대규모 운영 시스템을 0→1로 설계·구축하는 3년차 프론트엔드 개발자",
   skills: [
     {
       category: "Languages",
@@ -90,6 +90,7 @@ export const RESUME: Resume = {
         "컴포넌트 8종 — Button·Input·Dropdown·Badge·Modal·Toast·Tooltip·Popover",
         "Storybook play + axe로 접근성 위반 자동 검출",
         "base / semantic 2계층 토큰 구조, 컴포넌트는 semantic만 참조",
+        "컴포넌트 생성 하네스 PoC를 설계한 뒤 역할을 분담해 통합했습니다.",
       ],
     },
     {
@@ -110,9 +111,9 @@ export const RESUME: Resume = {
       period: "2024.01 ~ 2025.05",
       description: [
         "외주로 개발된 레거시 환경에서 회원·인증·예약·결제·마이페이지 전반을 담당하며 구조 개선을 주도했습니다.",
-        "분산된 날짜 상태를 단일 모듈(29 atom/selector)로 중앙화, 중복 코드 1,854줄 제거",
+        "분산된 날짜 상태를 단일 모듈(29 atom/selector)로 중앙화, 중복 코드 1,854줄 삭제 및 props drilling 제거",
         "Google Sheets API 연동으로 번역 반영을 자동화, 건당 5~10분 → 1분",
-        "인터셉터 큐로 직렬화된 무중단 인증 구조에서 axiosInstance 통합·리프레시 토큰 저장 방식 개선",
+        "동시 다발 401을 인터셉터 큐로 직렬화해 리프레시 1회 후 일괄 재시도하도록 개선",
         "iOS/Android 웹뷰와 토큰·로그인 양방향 동기화 브릿지 구현",
       ],
     },
@@ -123,8 +124,8 @@ export const RESUME: Resume = {
       description: [
         "호텔 운영 전 도메인을 다루는 어드민을 제로베이스에서 단독 구축했습니다.",
         "50개 이상의 정책 조합을 정책 그룹으로 추상화하고 React Hook Form으로 UI 동적 개폐",
-        "정책 간 제약(판매기간 < 투숙기간 등)을 입력 단계에서 사전 차단",
-        "5단계 권한 체계를 라우팅 단위에서 재정의",
+        "등록 시 필수 항목 누락을 사전 체크하고, 날짜 필드에 minDate/maxDate 입력 제약을 걸어 정책 간 제약 위반을 차단",
+        "5단계 권한 체계(MASTER/ADMIN/HOTEL/FNB/CS)를 라우팅 단위에서 재정의",
         "30+ 페이지 · 50+ API · 100+ 컴포넌트를 단일 모듈 구조로 유지",
       ],
     },
