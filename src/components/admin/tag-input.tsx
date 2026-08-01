@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -43,6 +43,19 @@ export function TagInput({
     onChange(value.filter((t) => t !== tag));
   }
 
+  function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData("text");
+    if (!text.includes(",")) return;
+    e.preventDefault();
+    const next = [...value];
+    for (const raw of text.split(",")) {
+      const tag = raw.trim();
+      if (tag && !next.includes(tag)) next.push(tag);
+    }
+    setDraft("");
+    onChange(next);
+  }
+
   return (
     <div
       className={cn(
@@ -68,6 +81,7 @@ export function TagInput({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onBlur={commitDraft}
         placeholder={value.length === 0 ? placeholder : undefined}
         className="min-w-24 flex-1 bg-transparent text-sm outline-none"

@@ -384,7 +384,7 @@ export function PostForm({
                 id="tags"
                 value={tags}
                 onChange={setTags}
-                placeholder="React, 트러블슈팅 (Enter로 추가)"
+                placeholder="React, 트러블슈팅 (쉼표 또는 Enter로 추가)"
                 className={cn(
                   attempted && tags.length === 0 && "border-destructive",
                 )}
