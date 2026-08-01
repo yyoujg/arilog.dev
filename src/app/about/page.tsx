@@ -79,7 +79,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export default function AboutPage() {
   return (
-    <Container className="max-w-3xl py-12">
+    <Container className="py-12">
       <h1 className="text-3xl font-bold tracking-tight">About</h1>
 
       <div className="mt-10 space-y-12">

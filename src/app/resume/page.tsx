@@ -68,7 +68,7 @@ export default function ResumePage() {
   }, []);
 
   return (
-    <Container className="resume-root max-w-3xl py-12">
+    <Container className="resume-root py-12">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{RESUME.name}</h1>
