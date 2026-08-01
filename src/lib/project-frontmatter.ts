@@ -9,6 +9,7 @@ export const projectSchema = z.object({
   summary: z.string().min(1),
   period: z.string().min(1),
   role: z.string().min(1),
+  category: z.enum(["company", "personal"]),
   stack: z.array(z.string().min(1)).min(1),
   github: z.string().url().optional(),
   demo: z.string().url().optional(),

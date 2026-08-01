@@ -15,6 +15,8 @@ export const metadata: Metadata = buildMetadata({
 export default function ProjectsPage() {
   const projects = getAllProjects();
   const stacks = getAllStacks();
+  const companyProjects = projects.filter((p) => p.category === "company");
+  const personalProjects = projects.filter((p) => p.category === "personal");
 
   return (
     <Container className="py-12">
@@ -22,11 +24,24 @@ export default function ProjectsPage() {
       <div className="mt-6">
         <StackFilter stacks={stacks} />
       </div>
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
-          <ProjectCard key={project.slug} project={project} />
-        ))}
-      </div>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-bold tracking-tight">회사 프로젝트</h2>
+        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {companyProjects.map((project) => (
+            <ProjectCard key={project.slug} project={project} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-xl font-bold tracking-tight">개인 프로젝트</h2>
+        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {personalProjects.map((project) => (
+            <ProjectCard key={project.slug} project={project} />
+          ))}
+        </div>
+      </section>
     </Container>
   );
 }

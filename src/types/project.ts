@@ -3,6 +3,7 @@ export interface ProjectFrontmatter {
   summary: string;
   period: string; // 자유 형식 문자열 (예: "2024.01 - 2024.06")
   role: string;
+  category: "company" | "personal";
   stack: string[];
   github?: string;
   demo?: string;
