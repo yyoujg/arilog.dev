@@ -22,8 +22,38 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ProjectList({
+  projects,
+}: {
+  projects: ReturnType<typeof getAllProjects>;
+}) {
+  return (
+    <div className="space-y-6">
+      {projects.map((p) => (
+        <div key={p.slug} className="break-inside-avoid">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <h3 className="font-bold">{p.title}</h3>
+            <span className="text-muted-foreground text-sm">{p.period}</span>
+          </div>
+          <p className="text-muted-foreground text-sm">{p.role}</p>
+          <p className="mt-1 text-sm">{p.summary}</p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {p.stack.map((s) => (
+              <li key={s}>
+                <Badge variant="outline">{s}</Badge>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ResumePage() {
   const projects = getAllProjects();
+  const companyProjects = projects.filter((p) => p.category === "company");
+  const personalProjects = projects.filter((p) => p.category === "personal");
 
   const experienceGroups = RESUME.experience.reduce<
     { company: string; items: typeof RESUME.experience }[]
@@ -116,28 +146,13 @@ export default function ResumePage() {
         </section>
 
         <section>
-          <SectionTitle>프로젝트</SectionTitle>
-          <div className="space-y-6">
-            {projects.map((p) => (
-              <div key={p.slug} className="break-inside-avoid">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <h3 className="font-bold">{p.title}</h3>
-                  <span className="text-muted-foreground text-sm">
-                    {p.period}
-                  </span>
-                </div>
-                <p className="text-muted-foreground text-sm">{p.role}</p>
-                <p className="mt-1 text-sm">{p.summary}</p>
-                <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {p.stack.map((s) => (
-                    <li key={s}>
-                      <Badge variant="outline">{s}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <SectionTitle>회사 프로젝트</SectionTitle>
+          <ProjectList projects={companyProjects} />
+        </section>
+
+        <section>
+          <SectionTitle>개인 프로젝트</SectionTitle>
+          <ProjectList projects={personalProjects} />
         </section>
 
         {RESUME.education.length > 0 && (

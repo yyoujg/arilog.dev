@@ -35,26 +35,53 @@ function SectionHeader({ title, href }: { title: string; href: string }) {
 
 export default function HomePage() {
   const recentPosts = getAllPosts().slice(0, 3);
-  const featured = getFeaturedProjects().slice(0, 3);
+  const featured = getFeaturedProjects();
+  const featuredCompany = featured
+    .filter((p) => p.category === "company")
+    .slice(0, 2);
+  const featuredPersonal = featured
+    .filter((p) => p.category === "personal")
+    .slice(0, 2);
 
   return (
     <Container>
       <JsonLd data={personLd()} />
       <Hero />
 
-      {featured.length > 0 && (
+      {(featuredCompany.length > 0 || featuredPersonal.length > 0) && (
         <section className="py-12">
           <SectionHeader title="Featured Projects" href="/projects" />
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((project, i) => (
-              // 첫 카드만 priority(LCP 요소). 3개 전부 주면 대역폭 경합이 는다.
-              <ProjectCard
-                key={project.slug}
-                project={project}
-                priority={i === 0}
-              />
-            ))}
-          </div>
+
+          {featuredCompany.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-muted-foreground text-sm font-semibold">
+                회사 프로젝트
+              </h3>
+              <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {featuredCompany.map((project, i) => (
+                  // 첫 카드만 priority(LCP 요소). 다 주면 대역폭 경합이 는다.
+                  <ProjectCard
+                    key={project.slug}
+                    project={project}
+                    priority={i === 0}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {featuredPersonal.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-muted-foreground text-sm font-semibold">
+                개인 프로젝트
+              </h3>
+              <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {featuredPersonal.map((project) => (
+                  <ProjectCard key={project.slug} project={project} />
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
