@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { RESUME } from "@/constants/resume";
 import { SITE } from "@/constants/site";
@@ -32,7 +33,11 @@ function ProjectList({
       {projects.map((p) => (
         <div key={p.slug} className="break-inside-avoid">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-            <h3 className="font-bold">{p.title}</h3>
+            <h3 className="font-bold">
+              <Link href={`/projects/${p.slug}`} className="hover:underline">
+                {p.title}
+              </Link>
+            </h3>
             <span className="text-muted-foreground text-sm">{p.period}</span>
           </div>
           <p className="text-muted-foreground text-sm">{p.role}</p>
