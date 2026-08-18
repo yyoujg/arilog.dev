@@ -9,7 +9,7 @@ import { Timeline } from "@/components/about/timeline";
 export const metadata: Metadata = buildMetadata({
   title: "About",
   description:
-    "Next.js·React로 멀티테넌트 예약 SaaS와 대규모 운영 시스템을 0→1로 설계·구축하는 3년차 프론트엔드 개발자입니다.",
+    "Next.js·React로 멀티테넌트 예약 SaaS와 대규모 운영 시스템을 0→1로 설계·구축하는 4년차 프론트엔드 개발자입니다.",
   path: "/about",
 });
 
@@ -34,18 +34,18 @@ const STRENGTHS = [
   {
     label: "도구를 의심하고 검증하는 원칙",
     value:
-      "size-limit 게이트가 진입점 파일만 측정해 실제 번들의 1/47만 재던 결함을 직접 발견해 측정 방식을 교체",
+      "size-limit 게이트가 컴포넌트 스텁 파일 하나만 재고 의존 청크를 집계하지 못하던 측정 범위 결함을 직접 발견해 측정 방식을 교체",
   },
 ];
 
 // 본인 성과 실측치.
 const METRICS = [
-  { label: "중복 제거", value: "날짜 상태 중앙화로 중복 코드 1,854줄 제거" },
-  { label: "자동화", value: "번역 반영 5~10분 → 1분" },
+  { label: "중복 제거", value: "분산된 날짜 상태를 단일 모듈로 중앙화" },
+  { label: "자동화", value: "번역 반영 스크립트로 수작업 대체" },
   { label: "토큰화", value: "디자인 토큰화로 하드코딩 120 → 6" },
   {
     label: "결함 발견",
-    value: "size-limit 측정 결함(실제 번들의 1/47만 측정) 발견·수정",
+    value: "size-limit 측정 범위 결함(스텁 파일만 측정) 발견·수정",
   },
 ];
 
