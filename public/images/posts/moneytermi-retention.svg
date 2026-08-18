@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 250" width="660" height="250" role="img" aria-labelledby="t d">
+<title id="t">머니터미 리텐션 (2026.07.18~08.18, 전체 34명)</title>
+<desc id="d">D0 100%, D1 30%, D2 27%, D3 15%, D4 12%, D5 21%, D6 16%, D7 10%, D8 7%, D9 3%, D10 3%, D11 3%. 유저 1명이 약 2.9%p에 해당한다.</desc>
+<style>
+  :root { color-scheme: light; }
+  .surface { fill: #fcfcfb; }
+  .ink     { fill: #0b0b0b; }
+  .muted   { fill: #52514e; }
+  .grid    { stroke: #0b0b0b; stroke-opacity: .10; }
+  .axis    { stroke: #0b0b0b; stroke-opacity: .28; }
+  .series  { stroke: #2a78d6; }
+  .dot     { fill: #2a78d6; }
+  .ring    { fill: #fcfcfb; }
+  .onefill { stroke: #52514e; }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; }
+    .surface { fill: #1a1a19; }
+    .ink     { fill: #ffffff; }
+    .muted   { fill: #c3c2b7; }
+    .grid    { stroke: #ffffff; stroke-opacity: .12; }
+    .axis    { stroke: #ffffff; stroke-opacity: .32; }
+    .series  { stroke: #3987e5; }
+    .dot     { fill: #3987e5; }
+    .ring    { fill: #1a1a19; }
+    .onefill { stroke: #c3c2b7; }
+  }
+  text { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  .lbl { font-size: 11px; }
+  .val { font-size: 11px; font-weight: 600; }
+  .cap { font-size: 11px; }
+</style>
+
+<rect class="surface" x="0" y="0" width="660" height="250" rx="6"/>
+
+<!-- 가로 그리드 -->
+<g class="grid" stroke-width="1">
+  <line x1="48" y1="24"  x2="610" y2="24"/>
+  <line x1="48" y1="68"  x2="610" y2="68"/>
+  <line x1="48" y1="112" x2="610" y2="112"/>
+  <line x1="48" y1="156" x2="610" y2="156"/>
+</g>
+<line class="axis" x1="48" y1="200" x2="610" y2="200" stroke-width="1"/>
+
+<!-- y축 눈금 -->
+<g class="muted lbl" text-anchor="end">
+  <text x="40" y="28">100%</text>
+  <text x="40" y="72">75</text>
+  <text x="40" y="116">50</text>
+  <text x="40" y="160">25</text>
+  <text x="40" y="204">0</text>
+</g>
+
+<!-- 유저 1명 기준선 (1/34 = 2.9%p) -->
+<line class="onefill" x1="48" y1="194.8" x2="610" y2="194.8" stroke-width="1" stroke-dasharray="3 3" stroke-opacity=".55"/>
+<text class="muted cap" x="54" y="191">유저 1명 = 2.9%p</text>
+
+<!-- 리텐션 곡선 -->
+<polyline class="series" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+  points="48,24 99.1,147.2 150.2,152.5 201.3,173.6 252.4,178.9 303.5,163 354.5,171.8 405.6,182.4 456.7,187.7 507.8,194.7 558.9,194.7 610,194.7"/>
+
+<!-- 마커 (표면 링 2px) -->
+<g>
+  <circle class="ring" cx="48"    cy="24"    r="6"/><circle class="dot" cx="48"    cy="24"    r="4"/>
+  <circle class="ring" cx="99.1"  cy="147.2" r="6"/><circle class="dot" cx="99.1"  cy="147.2" r="4"/>
+  <circle class="ring" cx="150.2" cy="152.5" r="6"/><circle class="dot" cx="150.2" cy="152.5" r="4"/>
+  <circle class="ring" cx="201.3" cy="173.6" r="6"/><circle class="dot" cx="201.3" cy="173.6" r="4"/>
+  <circle class="ring" cx="252.4" cy="178.9" r="6"/><circle class="dot" cx="252.4" cy="178.9" r="4"/>
+  <circle class="ring" cx="303.5" cy="163"   r="6"/><circle class="dot" cx="303.5" cy="163"   r="4"/>
+  <circle class="ring" cx="354.5" cy="171.8" r="6"/><circle class="dot" cx="354.5" cy="171.8" r="4"/>
+  <circle class="ring" cx="405.6" cy="182.4" r="6"/><circle class="dot" cx="405.6" cy="182.4" r="4"/>
+  <circle class="ring" cx="456.7" cy="187.7" r="6"/><circle class="dot" cx="456.7" cy="187.7" r="4"/>
+  <circle class="ring" cx="507.8" cy="194.7" r="6"/><circle class="dot" cx="507.8" cy="194.7" r="4"/>
+  <circle class="ring" cx="558.9" cy="194.7" r="6"/><circle class="dot" cx="558.9" cy="194.7" r="4"/>
+  <circle class="ring" cx="610"   cy="194.7" r="6"/><circle class="dot" cx="610"   cy="194.7" r="4"/>
+</g>
+
+<!-- 선택적 직접 라벨 -->
+<g class="ink val" text-anchor="middle">
+  <text x="48"    y="16">100%</text>
+  <text x="99.1"  y="139">30%</text>
+  <text x="303.5" y="155">21%</text>
+  <text x="405.6" y="174">10%</text>
+</g>
+
+<!-- x축 -->
+<g class="muted lbl" text-anchor="middle">
+  <text x="48"    y="219">D0</text>
+  <text x="99.1"  y="219">D1</text>
+  <text x="150.2" y="219">D2</text>
+  <text x="201.3" y="219">D3</text>
+  <text x="252.4" y="219">D4</text>
+  <text x="303.5" y="219">D5</text>
+  <text x="354.5" y="219">D6</text>
+  <text x="405.6" y="219">D7</text>
+  <text x="456.7" y="219">D8</text>
+  <text x="507.8" y="219">D9</text>
+  <text x="558.9" y="219">D10</text>
+  <text x="610"   y="219">D11</text>
+</g>
+
+<text class="muted cap" x="48" y="240">2026.07.18 ~ 08.18 · 전체 34명 기준 · D5의 반등은 개선이 아니라 표본이 작아서 생긴 흔들림이다</text>
+</svg>
