@@ -119,7 +119,7 @@ export const RESUME: Resume = {
     },
     {
       company: COMPANY,
-      role: "B2C 서비스(리뉴얼 이전) · 핵심 개발자 · 단일 최대 기여자",
+      role: "B2C 서비스(리뉴얼 이전) · 핵심 개발자",
       period: "2024.01 ~ 2025.05",
       description: [
         "외주로 개발된 레거시 환경에서 회원·인증·예약·결제·마이페이지 전반을 담당하며 구조 개선을 주도했습니다.",
