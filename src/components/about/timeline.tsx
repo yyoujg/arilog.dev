@@ -32,9 +32,7 @@ export function Timeline({ items }: { items: ExperienceItem[] }) {
                 className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm"
               >
                 <span>{item.role}</span>
-                <span className="text-muted-foreground shrink-0">
-                  {item.period}
-                </span>
+                <span className="text-muted-foreground">{item.period}</span>
               </li>
             ))}
           </ul>
