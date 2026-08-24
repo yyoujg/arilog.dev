@@ -14,9 +14,10 @@ export const metadata: Metadata = buildMetadata({
 });
 
 const INTRO = [
-  "결과값이 이상하다면, 도구 자체의 한계와 오류를 끝까지 의심하고 검증합니다.",
-  "단순히 주어진 기능을 구현하는 것을 넘어, 시스템의 근본 원인을 파악하고 해결하는 프론트엔드 엔지니어입니다. 도구의 맹점이나 아키텍처의 빈틈을 찾아 안정성을 높이고, 디자인 시스템 구축부터 다국어 자동화까지 팀 생산성을 높이는 개발 환경을 설계하는 데 강점이 있습니다.",
-  "React·TypeScript·Next.js 기반으로 예약·결제·멤버십·운영 플랫폼을 개발해왔습니다. 멀티테넌트 SaaS를 단독 구축했고, TanStack Query 기반 서버 상태 관리, GA4/GTM 데이터 수집, 대규모 관리자·고객 서비스 개발 경험을 보유하고 있습니다. 복잡한 운영 도메인을 빠르게 구조화하고, 레거시를 사용자 흐름 기준으로 재정리해 중복·정책 충돌을 구조로 제거합니다.",
+  "4년차 프론트엔드 개발자입니다. React·TypeScript·Next.js를 중심으로 개발합니다.",
+  "호텔 운영 어드민, 멀티테넌트 예약 SaaS, 사내 공통 디자인 시스템을 제로베이스에서 설계·구축한 경험이 있습니다.",
+  "어드민에서는 도메인마다 흩어진 취소·예약 정책 입력을 하나의 폼 구조로 모았고, 예약 SaaS에서는 결제 승인·예약 등록 간 실패 구간을 설계했고, 디자인 시스템에서는 번들 크기 게이트의 측정 범위 결함을 발견해 교체했습니다.",
+  "저 혼자 빨라지는 것보다, 다음에 이 화면을 만들 사람이 빨라지는 구조를 만드는 데 관심이 있습니다.",
 ];
 
 // 대표 강점 3가지.
@@ -40,36 +41,43 @@ const STRENGTHS = [
 
 // 본인 성과 실측치.
 const METRICS = [
-  { label: "중복 제거", value: "분산된 날짜 상태를 단일 모듈로 중앙화" },
-  { label: "자동화", value: "번역 반영 스크립트로 수작업 대체" },
-  { label: "토큰화", value: "디자인 토큰화로 하드코딩 120 → 6" },
+  {
+    label: "단독 구축 규모",
+    value: "호텔 운영 어드민 30+ 페이지 · 50+ API · 100+ 컴포넌트",
+  },
   {
     label: "결함 발견",
-    value: "size-limit 측정 범위 결함(스텁 파일만 측정) 발견·수정",
+    value:
+      "size-limit 번들 게이트의 측정 범위 결함 발견·교체 (컴포넌트별 수십 배 언더카운트, 의존성 유무에 따라 편차)",
+  },
+  {
+    label: "원인 규명",
+    value:
+      "신고된 증상과 반대 방향의 결함을 같은 코드에서 발견 — 판매 불가 날짜가 포함된 예약이 통과되던 날짜 경계 버그",
+  },
+  {
+    label: "결제·보안",
+    value:
+      "결제·예약 상태 불일치를 판별해 재결제 유발 경로 차단 · 예약 식별정보 AES-256-GCM 봉인 토큰(TTL 10분)",
+  },
+  {
+    label: "무코드 확장",
+    value: "신규 시설 추가 시 코드 변경 없이 설정만으로 확장",
   },
 ];
 
 const CAPABILITIES = [
   {
-    area: "프레임워크",
-    detail: "Next.js(App Router) · React 19(RSC) · TypeScript(strict)",
+    area: "운영 어드민",
+    detail: "대규모 관리자 화면 단독 설계 · 권한 라우팅 · 복합 폼 구조화",
   },
   {
-    area: "상태·폼",
-    detail: "TanStack Query · Recoil · Jotai · Zustand · React Hook Form",
-  },
-  {
-    area: "스타일·시스템",
-    detail: "Tailwind v4 · cva · tailwind-merge · Storybook · 디자인 토큰",
-  },
-  {
-    area: "빌드·품질",
-    detail:
-      "Vite · Vitest · Playwright · tsup · size-limit · ESLint/Prettier · GitLab CI",
+    area: "디자인 시스템",
+    detail: "2계층 토큰 · 컴포넌트 8종 · tsup 패키지화 · size-limit CI 게이트",
   },
   {
     area: "도메인",
-    detail: "멀티테넌트 SaaS · 예약/결제 · 인증 · 멤버십 · 운영 어드민",
+    detail: "운영 백오피스 · 멀티테넌트 SaaS · 예약/결제 · 인증 · 멤버십",
   },
 ];
 
@@ -113,7 +121,7 @@ export default function AboutPage() {
 
         <section>
           <SectionTitle>대표 지표</SectionTitle>
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {METRICS.map((metric) => (
               <div
                 key={metric.label}
