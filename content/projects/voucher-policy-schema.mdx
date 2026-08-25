@@ -12,7 +12,7 @@ stack:
 thumbnail: /images/projects/company-project-placeholder.svg
 featured: false
 draft: false
-order: 8
+order: 9
 ---
 
 호텔·숙박 도메인 SaaS 기업의 멤버십 서비스에서, 결제 화면의 할인 바우처 노출 로직을 담당했다.
@@ -29,15 +29,15 @@ order: 8
 
 반복되는 조건이 사실 몇 종류 안 된다는 걸 확인하고, 조건을 **선언적 스키마**로 뽑았다. 바우처마다 로직을 쓰는 대신 값만 채우게 했다.
 
-| 조건 키 | 의미 |
-| --- | --- |
-| `minPrice` | 최소 결제 금액 |
-| `allowedHotelIds` / `requiredHotelId` / `excludedHotelIds` | 사용 가능 업장 허용·단일 지정·제외 |
-| `excludedTags` | 상품 태그 기반 제외 (임직원 상품 등) |
-| `checkoutDateLimit` | 지정일 이후 체크아웃 시 비노출 |
-| `requiredProdType` | 객실 전용 / 패키지 전용 |
-| 회원 등급 조건 | 특정 등급 회원에게만 노출 |
-| `requiredProdId` (환경별 변형 포함) | 특정 상품 한정, 개발·운영 환경 분기 |
+| 조건 키                                                    | 의미                                 |
+| ---------------------------------------------------------- | ------------------------------------ |
+| `minPrice`                                                 | 최소 결제 금액                       |
+| `allowedHotelIds` / `requiredHotelId` / `excludedHotelIds` | 사용 가능 업장 허용·단일 지정·제외   |
+| `excludedTags`                                             | 상품 태그 기반 제외 (임직원 상품 등) |
+| `checkoutDateLimit`                                        | 지정일 이후 체크아웃 시 비노출       |
+| `requiredProdType`                                         | 객실 전용 / 패키지 전용              |
+| 회원 등급 조건                                             | 특정 등급 회원에게만 노출            |
+| `requiredProdId` (환경별 변형 포함)                        | 특정 상품 한정, 개발·운영 환경 분기  |
 
 조건 키는 11종이고, 판정은 단일 진입점 하나로 모았다. 환경별 분기는 스키마 안에서 처리해서 호출부가 환경을 알 필요가 없게 했다.
 
