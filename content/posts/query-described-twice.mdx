@@ -1,0 +1,206 @@
+---
+title: 요청이 두 번 나갔다 - 'TanStack Router로 안정적인 쿼리 프리페칭하기'를 읽고 흩어진 조회 조건을 다시 본 이야기
+description: loader와 컴포넌트가 같은 쿼리를 따로 기술하면 어긋나도 에러가 없다는 글을 읽고, 쿼리 키 고정, 잘못된 초기값, 과한 enabled 조건, 닫힌 모달의 마운트까지 네 곳에 흩어져 있던 "언제 무엇으로 조회하는가"를 다시 정리했다.
+date: 2026-09-17
+category: 트러블슈팅
+tags:
+  - React Query
+  - TanStack Router
+  - 쿼리 키
+  - 중복 요청
+  - 회고
+draft: true
+---
+
+> 관련 프로젝트: [예약 검색 날짜 경계 결함 추적](/projects/booking-calendar-timezone), [운영 어드민 단독 구축](/projects/ops-admin-standalone), [B2C 레거시 리팩토링](/projects/b2c-legacy-refactor)
+> 읽은 글: [(번역) TanStack Router로 안정적인 쿼리 프리페칭하기](https://ykss.netlify.app/translation/2026/reliable-query-prefetching-with-tanstack-router/) (Ykss 번역) / 원문 [Reliable Query Prefetching with TanStack Router](https://tkdodo.eu/blog/reliable-query-prefetching-with-tanstack-router) (TkDodo, Dominik Dorfmeister)
+
+이 글은 라우터 loader 이야기지만, 읽으면서 떠오른 건 라우터와 상관없는 내 코드였다.
+같은 조회를 두 군데서 따로 설명하고 있었고, 둘이 어긋나도 아무 에러가 나지 않았다.
+결과는 요청이 두 번 나가거나, 캐시가 엉뚱한 값을 돌려주거나, 아예 요청이 안 나가는 것이었다.
+
+## 아티클 요약: 같은 쿼리를 두 번 쓰면 언젠가 어긋난다
+
+워터폴을 피하려면 컴포넌트가 렌더되기 전에 데이터를 받아 두는 게 좋다. TanStack Router에서는
+loader가 쿼리를 미리 채우고, 컴포넌트는 같은 쿼리를 읽어 캐시를 이어받는다. 문제는 이때
+쿼리 키와 조회 함수를 loader와 컴포넌트에 각각 적게 된다는 점이다.
+
+저자의 예시에서는 검색 파라미터 `asOf`가 컴포넌트 쪽 쿼리에는 들어갔지만 loader에는
+반영되지 않았다. loader는 다른 키로 데이터를 받아 두고, 컴포넌트는 그 캐시를 찾지 못해
+다시 요청한다. 프리페칭이 실패한 건데 에러는 없다. 화면은 결국 맞는 값을 보여 주니
+알아채기도 어렵다.
+
+해결은 두 단계로 나온다.
+
+1. `loaderDeps`로 loader가 검색 파라미터를 의존성으로 받게 한다. 다만 이건 빠진 값 하나를 채운 것이라 증상 치료에 가깝다.
+2. 라우트 context에서 `queryOptions`를 한 번 만들고, loader는 `ensureQueryData`로, 컴포넌트는 `useRouteContext`로 같은 옵션을 꺼내 `useSuspenseQuery`에 넘긴다.
+
+요지는 2단계다. 쿼리 옵션을 한 곳에서 만들어 공유하면, 두 곳이 어긋날 여지 자체가 사라진다.
+
+## 내 사례: 조회 조건이 네 곳에 흩어져 있었다
+
+라우터 loader를 쓴 프로젝트는 아니다. 셋 다 React Query에 Recoil이나 Jotai, 폼 상태가
+얹힌 구조다. 그런데 "언제, 무엇으로 조회하는가"라는 한 가지 결정이 쿼리 키, `enabled`,
+effect, 컴포넌트 마운트 여부에 나뉘어 있었다는 점이 아티클의 상황과 같았다.
+
+### 1. 쿼리 키가 조건을 담지 않아 effect로 땜질했다
+
+예약 검색 캘린더에서 판매 불가 날짜를 받아오는 쿼리였다. 요청 본문에는 시설 목록, 객실별 인원,
+보고 있는 달이 들어가는데 쿼리 키는 고정 문자열 하나였다. 조건이 바뀌어도 키가 같으니
+캐시가 이전 조건의 결과를 그대로 돌려줄 수 있었다. 그래서 조건이 바뀔 때마다 effect에서
+캐시를 무효화해 다시 받게 하고 있었다.
+
+```ts
+// 5461c17 이전: useQuery.ts
+queryKey: (["availableRoomDate"],
+  // 5461c17 이전: useSearchPanelSelectDate.tsx
+  useEffect(() => {
+    queryClient.invalidateQueries({
+      queryKey: ["availableRoomDate"],
+      refetchType: "all",
+    });
+  }, [hotelIdList, perRoomList, currentCalendarDate]));
+```
+
+이 구조에서는 "무엇으로 조회하는가"가 두 곳에 있다. 요청 본문은 쿼리 함수에, 다시 받아야 하는
+조건은 effect 의존성 배열에 있다. 둘 중 하나에만 조건이 추가되면 어긋난다. 아티클의 loader가
+`asOf`를 빠뜨린 것과 같은 모양이다.
+
+2026-07-21 커밋 `5461c17`에서 키에 요청 본문을 넣고 effect를 지웠다. 변경은 2파일, 1줄 추가에 10줄 삭제다.
+
+```ts
+queryKey: ["availableRoomDate", reqBody],
+```
+
+조건이 키에 들어가면 조건이 바뀔 때 React Query가 알아서 다른 캐시 항목을 본다.
+무효화 effect가 하던 일을 키가 대신하니, 조건을 기술하는 곳이 한 곳으로 줄었다.
+
+### 2. 초기값이 틀려서 첫 요청이 버려졌다
+
+운영 어드민 대시보드에서 회원 현황 API가 두 번씩 호출됐다. 날짜 상태 초기값을 이렇게 만들고 있었다.
+
+```ts
+const [inputDate, setInputDate] = useState<string>(
+  new Date().toISOString().split("T")[0],
+);
+const newDate = `${new Date().toISOString().split("-")[0]}${new Date().toISOString().split("-")[1]}${new Date().toISOString().split("-")[2]}`;
+const [targetDate, setTargetDate] = useState<string>(newDate);
+```
+
+`toISOString()`은 `2025-01-16T03:12:45.123Z` 같은 형태다. `-`로 자르면 세 번째 조각이
+`16T03:12:45.123Z`라서, 이어 붙인 값은 `20250116T03:12:45.123Z`처럼 시간 꼬리가 붙는다.
+첫 렌더에서 이 값으로 요청이 나가고, 바로 뒤 effect가 `inputDate`를 `yyyyMMdd`로 바꿔
+`targetDate`에 넣는다. 키가 바뀌었으니 두 번째 요청이 나간다. 첫 요청은 버려지는 요청이었다.
+
+같은 계산이 여기서도 두 곳에 있었다. 초기값을 만드는 식과 effect 안의 변환식이 따로 있고,
+둘이 다른 문자열을 만들었다.
+
+2025-01-07 `f756f0f4`에서 매출 요약 컴포넌트의 초기값을 먼저 `null`로 바꿨고, 2025-01-16
+`06b824bb`에서 나머지 컴포넌트에도 같은 수정을 넣었다. 초기값은 `null`로 두고, effect가
+올바른 값을 넣기 전에는 요청을 막는다.
+
+```ts
+const [targetDate, setTargetDate] = useState<string | null>(null);
+```
+
+```ts
+() => getMembershipDashboardStatus(targetDate),
+{
+  enabled: !!targetDate,
+},
+```
+
+`06b824bb` 시점에 `targetDate`를 받는 쿼리 4개가 모두 이 가드를 갖게 됐다. 3개는 이 커밋에서
+추가했고 매출 쿼리는 이미 있었다. 같은 패턴의 결함을 한 컴포넌트에서 먼저 고치고 나머지를
+9일 뒤에 고친 셈이다. 계산이 컴포넌트마다 복사돼 있었기 때문이다.
+
+### 3. enabled를 너무 넓게 걸어 요청이 아예 안 나갔다
+
+B2C 결제 화면의 예상 금액 조회도 두 번 호출되고 있었다. 2024-08-26 `7320aa64`에서
+객실 정보 배열의 초기값을 `[]`에서 `null`로 바꾸고, 요청 파라미터 12개가 모두 있어야
+조회하도록 `enabled`를 걸었다.
+
+```ts
+enabled:
+  !!lang &&
+  !!membershipYn &&
+  !!membershipNo &&
+  !!hotelId &&
+  !!prodType &&
+  !!prodId &&
+  !!subProdId &&
+  !!checkInDate &&
+  !!checkOutDate &&
+  !!pplCnt &&
+  !!roomCnt &&
+  !!roomInfoList,
+```
+
+중복 호출은 막혔지만 같은 날 다른 문제가 나왔다. 비회원에게는 회원번호가 없으니
+`!!membershipNo`가 항상 거짓이고, 비회원 예약에서는 예상 금액 조회가 한 번도 나가지 않았다.
+같은 날 커밋(병합 `8f5c30d3`)에서 필수 조건을 7개로 줄였다.
+
+```ts
+enabled: !!lang && !!hotelId && !!checkInDate && !!checkOutDate && !!pplCnt && !!roomCnt && !!roomInfoList,
+```
+
+회원 관련 2개와 상품 식별 3개를 뺐다. 상품 식별 값 3개를 뺀 이유는 커밋에 기록이 없다.
+다음 날 병합 `e2d4654a`에서는 쿠폰 번호와 쿠폰 이름의 빈 값을 `null`에서 빈 문자열로 바꿨다.
+커밋 제목에는 포인트라고 적혀 있지만 diff는 쿠폰 두 필드다. 왜 바꿨는지는 기록이 없다.
+
+여기서 `enabled`는 "언제 조회하는가"를 정하는 또 하나의 장소였다. 쿼리 파라미터 목록과
+`enabled` 조건 목록을 따로 유지하다 보니, 파라미터 중 무엇이 진짜 필수인지가 조건 목록에서만
+드러났고 그게 틀렸다.
+
+### 4. 닫힌 모달이 쿼리를 미리 불렀다
+
+운영 어드민의 모달은 `open` 값만 받고 항상 마운트돼 있었다. 모달 안에 쿼리가 있으면 닫힌
+상태에서도 화면 진입과 함께 요청이 나간다. 목록 행마다 모달이 붙은 화면에서는 행 수만큼 나간다.
+
+2025-03-12 `83b2cb03`에서 14개 파일의 모달을 조건부 마운트로 바꿨다.
+
+```tsx
+{
+  optionHotelModal && (
+    <OptionHotelModal
+      setIsOptionHotelModal={setIsOptionHotelModal}
+      open={optionHotelModal}
+    />
+  );
+}
+```
+
+행 수 곱하기 쿼리 수로 실제 몇 건이 미리 나가고 있었는지는 기록이 없다. 측정하지 않고 고쳤다.
+
+이 경우 "언제 조회하는가"는 쿼리 옵션이 아니라 컴포넌트 트리에 들어 있었다. 쿼리 쪽에서는
+보이지 않는 조건이라 찾기가 가장 어려웠다.
+
+## 아티클과 내 사례 대비
+
+|           | 조회 조건이 기술된 곳              | 어긋난 결과                   | 고친 방식                       |
+| --------- | ---------------------------------- | ----------------------------- | ------------------------------- |
+| 아티클    | loader, 컴포넌트                   | 다른 키로 프리페치 후 재요청  | 라우트 context의 `queryOptions` |
+| 캘린더    | 쿼리 함수 본문, effect 의존성      | 이전 조건의 캐시를 볼 수 있음 | 요청 본문을 쿼리 키로           |
+| 대시보드  | 초기값 계산, effect 변환           | 잘못된 키로 첫 요청, 재요청   | 초기값 `null` + `enabled`       |
+| 예상 금액 | 쿼리 파라미터, `enabled` 조건 목록 | 중복 호출, 이후 비회원 미호출 | 필수 조건 축소                  |
+| 닫힌 모달 | 쿼리 옵션 밖의 마운트 여부         | 닫힌 상태에서 미리 요청       | 조건부 마운트                   |
+
+## 다른 점과 한계
+
+아티클은 라우터 loader와 컴포넌트라는 두 소비자가 하나의 쿼리를 공유하는 문제다. 내 사례에는
+loader가 없다. 두 번째 소비자 자리에 effect, 초기값, `enabled`, 마운트 조건이 있었다.
+그래서 `queryOptions`를 공유하는 해법을 그대로 가져올 수는 없고, "조건을 한 곳에 모은다"는
+방향만 가져올 수 있다.
+
+내 수정도 그 방향을 끝까지 가지는 않았다. 캘린더는 키에 조건을 모았지만, 대시보드와 예상 금액은
+`enabled`라는 두 번째 장소를 하나 더 만든 것이다. 쿼리 키와 `enabled` 조건이 같은 파라미터
+객체에서 나오도록 묶지는 않았다. 모달은 조회 조건을 컴포넌트 트리에 둔 채로 마운트만 늦췄다.
+
+중복 요청이 몇 건이었는지, 고친 뒤 얼마나 줄었는지 측정값은 네 건 모두 없다. 커밋 메시지와
+diff로 확인한 것은 "두 번 나가던 것을 막았다"는 의도와 코드 변화까지다.
+
+## 배운 점
+
+- 쿼리 키에 요청 조건을 전부 넣는다. 키가 조건을 담지 않으면 그 빈자리를 무효화 effect가 메우게 되고, 조건이 두 곳에 적힌다.
+- `enabled`는 "아직 값이 없음"을 막는 데만 쓴다. 필수 파라미터 목록을 `enabled`에 다시 적으면 어떤 사용자에게는 요청이 영영 안 나간다.
+- 같은 요청이 두 번 보이면 어디서 조회 조건이 두 번 기술됐는지부터 찾는다. 초기값, effect, 마운트 여부도 조건을 기술하는 장소다.

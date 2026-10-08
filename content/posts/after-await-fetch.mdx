@@ -1,0 +1,129 @@
+---
+title: 성공 응답이 HTML이었다 - 'Half Past Fetch'를 읽고 await fetch 다음 줄을 다시 본 이야기
+description: await fetch는 헤더까지만 기다리고 body는 아직 스트림이라는 글을 읽고, 프록시가 돌려준 HTML 오류 페이지 때문에 res.json()이 깨지던 예약 API 클라이언트를 다시 봤다. 경계는 응답이 온 순간이 아니라 body를 읽는 순간이었고, 타임아웃은 아직 없다.
+date: 2026-09-09
+category: 트러블슈팅
+tags:
+  - fetch
+  - Streams
+  - 에러 처리
+  - 타임아웃
+  - 회고
+draft: true
+---
+
+> 관련 프로젝트: [멀티테넌트 예약 SaaS](/projects/multitenant-booking-saas)
+> 읽은 글: [Half Past Fetch: what await fetch() waits for](https://blog.gaborkoos.com/posts/2026-09-08-Half-Past-Fetch/) (Gabor Koos, 번역본 없음)
+
+`await fetch()`가 끝나면 응답을 받았다고 생각하기 쉽다. 이 글은 그게 반쯤만 맞다고 말한다.
+읽으면서 예약 API 클라이언트에서 고친 버그 하나가 떠올랐다. 상태 코드도 헤더도 멀쩡했는데,
+body를 읽는 순간에 깨졌다.
+
+## 아티클 요약: await fetch는 헤더까지만 기다린다
+
+`fetch()`가 돌려주는 promise는 상태 줄과 헤더가 도착하면 resolve된다. body는 그 시점에 아직
+스트림이고, `res.json()`이나 `res.text()`를 호출해야 끝까지 읽힌다. 그래서 `await fetch` 다음
+줄부터는 네트워크 작업이 아직 진행 중이다.
+
+저자는 여기서 생기는 책임을 네 가지로 짚는다.
+
+- 연결: body를 끝까지 읽거나 취소하지 않으면 연결이 재사용되지 않는다.
+- 메모리: `clone()`은 스트림을 둘로 나누는 tee라서, 한쪽만 읽으면 다른 쪽 몫이 메모리에 쌓인다.
+- 취소: 응답 객체를 버리는 것만으로는 다운로드가 멈추지 않는다.
+- 타임아웃: `Promise.race`로 만든 타임아웃은 헤더 단계까지만 막는다. `AbortSignal.timeout`은 body 읽기까지 끊는다.
+
+수치 예시도 있다. 바이트를 천천히 흘려보내는 httpbin의 drip 엔드포인트에서 헤더는 250.7ms에
+왔고 body는 3445.8ms에 끝났다. 타임아웃 200ms 예시에서 `Promise.race`는 59.7ms에 끝난 것처럼
+보였지만 실제 body는 1251.3ms에 완료됐다. 같은 조건에서 `AbortSignal.timeout`은 약 203ms에
+`TimeoutError`로 끊었다.
+
+결론은 `await fetch` 이후의 코드가 연결, 메모리, 취소, 타임아웃을 책임진다는 것이다.
+
+## 내 사례: 성공처럼 보이는 응답이 HTML이었다
+
+멀티테넌트 예약 SaaS의 서버 쪽 코드에서 예약 API를 부르는 공용 클라이언트 이야기다.
+
+### 증상
+
+예약 API 앞에는 프록시와 WAS가 있다. 이쪽이 오류를 내면 JSON이 아니라 HTML 오류 페이지나
+로그인 페이지를 돌려줄 수 있다. 기존 코드는 응답을 받으면 바로 `res.json()`을 불렀다.
+
+```ts
+const json = (await res.json()) as BookingApiResponse<T>;
+```
+
+body가 HTML이면 `res.json()`이 파싱 예외를 던지고, 그 메시지인 `Unexpected token '<'`가
+가공 없이 사용자 화면까지 올라갈 수 있었다. 커밋에 남긴 주석도 이걸 막으려는 것이라고 적고 있다.
+
+### 원인
+
+`res.ok`와 상태 코드, 헤더만 보면 이 응답이 정상인지 알 수 없었다. 고친 코드도 상태가 2xx인데
+body가 JSON이 아닌 경우를 따로 분류한다. body 내용이 JSON인지는 body를 읽어야 안다. 아티클 식으로 말하면,
+`await fetch`가 끝난 시점은 아직 경계가 아니었다. 진짜 경계는 body를 읽는 순간이었다.
+
+### 수정
+
+2026-05-29 커밋 `cecc2cc`에서 body를 먼저 문자열로 읽고, 파싱은 따로 시도하도록 바꿨다.
+변경은 2파일, 33줄 추가에 7줄 삭제다. 현재 코드에서는 `parseBookingResponse` 함수 안에 있다.
+
+```ts
+const raw = await res.text();
+let json: BookingApiResponse<T> | null = null;
+if (raw.trim()) {
+  try {
+    json = JSON.parse(raw) as BookingApiResponse<T>;
+  } catch {
+    throw new BookingApiError({
+      kind: res.ok ? 'network' : 'http',
+      status: res.status,
+      message: `HTTP ${res.status}`,
+```
+
+파싱에 실패하면 `HTTP 502`처럼 상태 코드만 담은 메시지로 바꿔 던진다. 상태가 2xx인데 body가
+JSON이 아니면 `network`, 상태가 실패면 `http`로 분류한다. 빈 body도 예외 없이 `null`로 받아
+뒤의 성공 여부 검사에서 걸리게 했다.
+
+열흘 뒤 2026-06-08 커밋 `fa408c43`에서 원본 body 앞부분을 오류 객체에 남기도록 했다.
+
+```ts
+rawBody: raw.slice(0, 500),
+```
+
+오류 메시지는 상태 코드로 두고, 진단할 때는 프록시가 실제로 무엇을 돌려줬는지 앞 500자를
+볼 수 있다. body를 문자열로 먼저 읽어 두었기 때문에 가능한 일이다. `res.json()`이 실패한 뒤에는
+이미 소비된 body를 다시 읽을 수 없다.
+
+## 아티클과 내 사례 대비
+
+|                | 아티클                                  | 내 사례                                     |
+| -------------- | --------------------------------------- | ------------------------------------------- |
+| 경계로 본 지점 | `await fetch` 이후 body 읽기            | `res.json()` 호출                           |
+| 드러난 문제    | 연결 재사용, 메모리, 취소, 타임아웃     | 비 JSON body의 파싱 예외 노출               |
+| 다룬 방식      | 끝까지 읽기 또는 취소, `AbortSignal`    | `res.text()` 후 `JSON.parse`를 `try`로 감쌈 |
+| body 소비      | 소비하지 않으면 연결이 묶인다           | 항상 끝까지 읽는다                          |
+| 시간 제한      | `AbortSignal.timeout`이 body까지 끊는다 | 없다                                        |
+| 측정           | 헤더와 body 완료 시각을 따로 잼         | 없다                                        |
+
+## 다른 점과 한계
+
+내가 고친 건 아티클이 말하는 네 가지 중 어느 것도 아니다. body 형식이 기대와 다를 때의 처리다.
+다만 `res.text()`로 항상 body를 끝까지 읽게 바뀌면서, 연결 재사용 측면에서는 결과적으로
+아티클의 권고와 같은 쪽에 서게 됐다. 의도한 건 아니었다.
+
+대신 비용이 있다. `res.text()`는 body 전체를 메모리에 올린 뒤에야 파싱을 시작한다. 이 클라이언트가
+다루는 응답은 예약 API의 JSON이라 크지 않다고 보고 있지만, 응답 크기를 측정한 적은 없다.
+큰 응답이 오는 엔드포인트에 같은 방식을 쓰면 아티클의 `clone()` 경고와 비슷한 메모리 문제가 된다.
+
+더 큰 빈자리는 타임아웃이다. 지금 이 공용 클라이언트의 GET과 POST는 `fetch`에 `signal`을 넘기지
+않는다. 타임아웃도 취소도 없다. 예약 API가 헤더를 보낸 뒤 body를 천천히 흘리면, 아티클의 drip
+예시처럼 `res.text()`가 그만큼 기다린다. 같은 레포의 다른 모듈에는 팀 코드로 `AbortSignal.timeout`이
+들어가 있지만, 내가 만든 이 클라이언트에는 아직 없다. 아티클 기준으로 남은 과제는 두 가지다.
+
+- `fetch`에 `AbortSignal.timeout`을 넘겨 헤더와 body 읽기를 같은 시간 제한 안에 둔다.
+- 타임아웃으로 끊긴 경우를 `network` 오류와 구분해 분류한다.
+
+## 배운 점
+
+- `res.ok`는 헤더가 성공이라는 뜻이다. body가 기대한 형식인지는 body를 읽고 나서야 안다.
+- body는 한 번만 읽힌다. 진단용 원본이 필요하면 문자열로 먼저 읽고, 파싱은 그다음에 한다. 대신 응답 크기를 알고 써야 한다.
+- 타임아웃은 `await fetch`가 아니라 body를 다 읽을 때까지를 덮어야 한다. `Promise.race`가 아니라 `signal`로 건다.

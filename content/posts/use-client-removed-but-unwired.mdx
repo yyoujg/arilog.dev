@@ -1,0 +1,172 @@
+---
+title: 경계를 옮기고 재지 않았다 - 'TanStack.com에서 RSC 사용을 중단했습니다'를 읽고 내 클라이언트 경계 커밋을 다시 본 이야기
+description: RSC를 도입하고 다시 걷어낸 과정을 전후 수치로 설명한 글을 읽고, 메인 페이지의 클라이언트 경계를 옮긴 커밋과 에디터를 SSR 밖으로 뺀 커밋을 다시 봤다. 나는 경계를 옮겼지만 측정하지 않았고, 지연 로딩 코드 하나는 연결조차 되지 않았다.
+date: 2026-09-08
+category: 회고
+tags:
+  - Next.js
+  - RSC
+  - use client
+  - 번들
+  - 성능 측정
+draft: true
+---
+
+> 관련 프로젝트: [B2C 리뉴얼 - 멤버십 인증·분석 재설계](/projects/b2c-renewal-membership), [B2C 레거시 리팩토링](/projects/b2c-legacy-refactor)
+> 읽은 글: [(번역) TanStack.com에서 RSC 사용을 중단했습니다](https://velog.io/@tap_kim/we-stopped-using-rsc-on-tanstack-com) (TapK 번역) / 원문 [We stopped using RSC on tanstack.com](https://tanstack.com/blog/we-stopped-using-rsc-on-tanstack-com) (Tanner Linsley)
+
+이 글에서 가장 눈에 들어온 건 결론보다 근거였다. 도입할 때도, 걷어낼 때도 숫자가 있었다.
+읽고 나서 내가 서버와 클라이언트 경계를 옮겼던 커밋 두 개를 다시 열어 봤다. 두 커밋 모두
+경계는 옮겼는데 전후로 잰 값이 하나도 없었다. 그중 하나에는 만들어 놓고 연결하지 않은
+코드도 있었다.
+
+## 아티클 요약: 무거운 의존성이 사라지자 경계의 이점도 사라졌다
+
+TanStack.com은 마크다운 렌더링과 구문 강조를 RSC로 서버에 옮겼다. 무거운 렌더러가 클라이언트
+번들에서 빠지면서 클라이언트 JS가 gzip 기준 약 153KB 줄었고, Lighthouse 점수는 52에서 74로,
+TBT는 1200ms에서 260ms로 좋아졌다.
+
+대신 비용이 쌓였다. 서버와 클라이언트 사이에 넘길 수 있는 값이 직렬화 가능한 것으로 제한되고,
+번들러 설정이 복잡해지고, 어느 컴포넌트가 어느 쪽에서 도는지 계속 따져야 했다. 이후 렌더러
+자체를 가볍게 바꾸자, 서버로 옮겨서 얻던 이점이 이 비용을 정당화하지 못하게 됐다. 그래서 다시
+일반 SSR로 돌아갔고, 블로그 페이지 TBT는 139ms에서 66ms로, 전송량은 1086KiB에서 889KiB로 줄었다.
+
+구조적인 차이도 짚는다. RSC는 요청마다 Flight 페이로드를 내려보내고, SSR은 렌더러 코드를 한 번
+받은 뒤에는 데이터만 받는다. 렌더러가 가벼워지면 매 요청의 페이로드가 오히려 짐이 된다.
+
+결론은 RSC 도입이 잘못이었다는 게 아니다. 무거운 의존성이 있을 때는 이점이 컸고, 그게
+사라지자 이점도 사라졌다. 경계는 비용과 이점을 재서 정하는 것이다.
+
+## 내 사례 1: 메인 페이지에서 `'use client'`를 걷어냈다
+
+B2C 리뉴얼 프로젝트의 메인 페이지는 파일 맨 위에 `'use client'`가 있었다. 검색 파라미터를 읽어
+특정 조건이면 상품 목록으로 보내는 처리를 `useSearchParams`와 `useEffect` 안의 `redirect`로 하고
+있었기 때문이다. 이 한 가지 때문에 페이지 전체가 클라이언트 컴포넌트였고, 리다이렉트는
+페이지가 클라이언트에서 그려진 뒤에야 일어났다.
+
+```tsx
+useEffect(() => {
+  if (searchParams.size === 0) {
+    return;
+  }
+  const hotelCode = searchParams.get("hotelCode");
+  const lang = searchParams.get("lang");
+
+  if (hotelCode !== null && lang !== null) {
+    redirect(`/productList?hotelCode=${hotelCode}&lang=${lang}`);
+  }
+}, [searchParams]);
+```
+
+2026-01-28 커밋 `1ee5e360`에서 경계를 옮겼다. 14파일, 209줄 추가에 89줄 삭제다.
+
+- 메인 `page.tsx`에서 `'use client'`를 지우고 서버 컴포넌트로 바꿨다. 검색 파라미터는 `searchParams` prop으로 받고, 리다이렉트는 서버에서 렌더 전에 한다.
+- 검색 패널과 섹션들은 새 파일 `MainPageClient.tsx`로 옮기고 거기에만 `'use client'`를 붙였다.
+- 섹션 로딩에 쓰던 스피너를 섹션 높이만큼 자리를 잡는 `SectionFallback`으로 바꿨다. 대부분 높이 520, 한 섹션은 420이다.
+- 호텔 목록을 불러오는 동안 띄우던 전역 로딩도 걷고, 선택 영역 안에 카드 4장짜리 스켈레톤을 그리게 했다.
+
+```tsx
+const MainPage = ({ searchParams }: MainPageProps) => {
+  const hotelCode =
+    typeof searchParams.hotelCode === "string"
+      ? searchParams.hotelCode
+      : undefined;
+  const lang =
+    typeof searchParams.lang === "string" ? searchParams.lang : undefined;
+
+  if (hotelCode && lang) {
+    redirect(`/productList?hotelCode=${hotelCode}&lang=${lang}`);
+  }
+
+  return <MainPageClient />;
+};
+```
+
+### 연결하지 않은 코드
+
+같은 커밋에서 `src/app/@components/MainPageBodyClient.tsx`도 추가했다. 96줄짜리 파일이다.
+섹션 5개를 `next/dynamic`으로 감싸고, `IntersectionObserver`로 각 섹션이 뷰포트에 가까워지면
+(`rootMargin`은 `'200px 0px'`, `threshold`는 0.1) 그때 렌더하는 지연 로딩 컴포넌트다.
+
+그런데 페이지가 실제로 쓰는 건 `MainPageClient.tsx`다. develop 브랜치 HEAD(2026-04-16 커밋)에서
+`MainPageBodyClient`를 레포 전체에서 찾으면 그 파일 자신의 선언과 `export` 두 줄만 나온다.
+어디서도 import하지 않는다. 뷰포트 지연 로딩 코드는 연결되지 않은 채 남아 있다. 내가 만들고
+내가 연결하지 않은 코드다. 커밋 당시 왜 연결하지 않았는지는 기록이 없다.
+
+이 커밋에 성능 측정값은 없다. 서버 컴포넌트로 바꾼 뒤 클라이언트 JS가 얼마나 줄었는지,
+리다이렉트가 얼마나 빨라졌는지, 스켈레톤으로 바꾼 뒤 레이아웃 이동이 어땠는지 잰 기록이 없다.
+`page.tsx`가 가져오던 컴포넌트를 `MainPageClient.tsx`가 그대로 가져오니, 클라이언트로 내려가는
+코드 양은 크게 달라지지 않았을 것으로 추정한다. 이 커밋이 확실히 바꾼 것은 리다이렉트가
+일어나는 위치다.
+
+## 내 사례 2: 에디터를 SSR 밖으로 뺐다
+
+B2C 레거시 프로젝트에서는 약관 본문을 CKEditor로 보여 주고 있었다. 편집이 아니라 읽기 전용
+표시다. 기존 코드는 세 파일에서 에디터 컴포넌트와 에디터 클래스를 각각 `next/dynamic`으로 감쌌다.
+
+```tsx
+const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react"), {
+  ssr: false,
+});
+const ClassicEditor = dynamic(
+  () => import("@ckeditor/ckeditor5-build-classic"),
+  { ssr: false },
+);
+```
+
+코드로 보면 `ClassicEditor`는 React 컴포넌트가 아니라 에디터 클래스인데, `next/dynamic`으로
+감싸면 컴포넌트 래퍼가 된다. `editor` prop에 클래스가 아닌 것이 넘어가는 구조였다.
+
+2024-09-03에는 이 문제를 두 번 다뤘다. 15시 51분 커밋 `e581c771`은 build 에러를 해결했다는
+커밋으로, 두 파일에서 `dynamic`을 걷고 정적 import로 바꾸면서 CKEditor 관련 패키지를 lock 파일에
+추가했다. 어떤 build 에러였는지는 기록이 없다. 17시 31분 커밋 `d7a4e6da`는 다른 브랜치에서
+반대 방향을 택했다. 에디터를 `ClassicCKEditor.tsx` 하나로 묶고, 이 모듈 전체를 `ssr: false`로
+dynamic import하게 바꿨다. 두 커밋은 서로의 조상이 아니다.
+
+```tsx
+function ClassicCKEditor({ data }: { data: string }) {
+  return <CKEditor editor={ClassicEditor} data={data} disabled={true} />;
+}
+```
+
+```tsx
+const ClassicCKEditor = dynamic(
+  () => import("@/components/common/CKEditor/ClassicCKEditor"),
+  { ssr: false },
+);
+```
+
+현재 develop에서 `ClassicCKEditor`를 쓰는 곳은 다섯 군데다. 넷은 `ssr: false` dynamic import로
+쓰고, 하나는 정적으로 import한다. 래퍼가 `disabled`를 항상 켜기 때문에 다섯 곳 모두 표시용이다.
+정적으로 쓰는 한 곳에는 이 경계가 적용되지 않은 채 남아 있다.
+
+여기도 번들 실측은 없다. 에디터를 dynamic import로 분리해서 약관 화면의 초기 번들이 얼마나
+가벼워졌는지 잰 적이 없다. 읽기 전용 표시에 에디터 전체가 필요한지도 따져 보지 않았다.
+
+## 아티클과 내 사례 대비
+
+|               | 아티클                               | 메인 페이지                             | 약관 에디터                        |
+| ------------- | ------------------------------------ | --------------------------------------- | ---------------------------------- |
+| 무엇을 옮겼나 | 마크다운 렌더러를 서버로, 다시 SSR로 | 페이지 경계를 서버로, 섹션만 클라이언트 | 에디터 모듈을 SSR 밖 지연 로딩으로 |
+| 무엇으로 판단 | 번들 크기, Lighthouse, TBT, 전송량   | 리다이렉트 위치, 전역 스피너 제거       | 잘못 감싼 `dynamic`, build 에러    |
+| 측정했나      | 도입과 철회 모두 전후 수치           | 없다                                    | 없다                               |
+| 남은 것       | 렌더러 경량화 후 SSR로 정리          | 지연 로딩 컴포넌트가 연결 안 됨         | 한 곳은 정적 import                |
+
+## 다른 점과 한계
+
+아티클은 RSC라는 경계 모델 자체를 들였다가 뺀 이야기고, 내 사례는 Next.js App Router 안에서
+`'use client'` 위치와 dynamic import로 경계를 조정한 이야기다. 규모가 다르다. 그리고 아티클은
+경계를 옮긴 이유가 성능이었지만, 내 메인 페이지 커밋의 직접적인 동기는 리다이렉트를 서버에서
+하는 것과 전역 스피너를 없애는 것이었다. 성능을 이유로 들지 않았으니 성능을 재지 않은 것도
+앞뒤는 맞다.
+
+문제는 그다음이다. 성능을 노린 코드인 뷰포트 지연 로딩은 만들어 놓고 연결하지 않았고, 연결하지
+않았다는 사실도 이 글을 쓰려고 grep하기 전까지 몰랐다. 측정을 하지 않으면 "효과가 있었나"뿐 아니라
+"적용은 됐나"도 확인하지 못한다. 아티클처럼 전후 숫자를 남겼다면, 지연 로딩이 빠진 사실은
+숫자가 변하지 않는다는 것으로 바로 드러났을 것이다.
+
+## 배운 점
+
+- 경계를 옮기는 커밋에는 전후 측정값을 같이 남긴다. 번들 크기 하나라도 남기면 적용 여부까지 같이 확인된다.
+- 경계를 옮긴 이유를 커밋에 적는다. 이유가 리다이렉트인지 번들인지에 따라 재야 할 값이 달라진다.
+- 새로 만든 컴포넌트는 커밋 전에 import하는 곳이 있는지 확인한다. 연결되지 않은 성능 코드는 효과도 비용도 없이 남는다.

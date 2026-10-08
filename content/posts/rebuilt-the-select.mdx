@@ -1,0 +1,183 @@
+---
+title: 네이티브 select를 지우고 listbox를 직접 만들었다 - 'Why don't more developers use the platform?'를 읽고 Dropdown을 다시 만든 이유를 찾아본 이야기
+description: 브라우저 기능을 JS로 다시 만드는 데에도 이유가 있다는 글을 읽고, 사내 디자인 시스템에서 네이티브 select를 지우고 listbox를 직접 구현한 커밋을 다시 봤다. 일주일 전 커밋에는 select라서 브라우저가 처리한다고 적었는데, 바꾼 이유는 어디에도 적혀 있지 않았다.
+date: 2026-10-07
+category: 디자인 시스템
+tags:
+  - 접근성
+  - 디자인 시스템
+  - 웹 플랫폼
+  - React
+  - 회고
+draft: true
+---
+
+> 관련 프로젝트: [사내 디자인 시스템](/projects/design-system)
+> 관련 글: [Escape 한 번에 오버레이 두 개가 닫혔다](/blog/posts/nested-overlay-escape-stack)
+> 읽은 글: [Why don't more developers "use the platform"?](https://nolanlawson.com/2026/10/03/why-dont-more-developers-use-the-platform/) (Nolan Lawson)
+
+JavaScript Weekly 헤드라인으로 이 글이 왔다. 제목을 보고 바로 떠오른 커밋이 있었다. 사내 디자인
+시스템에서 Dropdown의 `select`를 지우고 `role="listbox"`를 직접 만든 커밋이다. 그 일주일 전에는
+같은 Dropdown을 두고 "네이티브 `select`라 브라우저가 이미 처리한다"고 커밋 본문에 적었다.
+
+## 아티클 요약: 플랫폼을 안 쓰는 데에도 이유가 있다
+
+저자는 "플랫폼을 써라"는 구호에 동의하는 쪽이다. 브라우저가 이미 주는 기능을 JS로 다시 만들면
+성능과 사용성이 떨어지기 쉽다. 다만 글의 중심은 비판이 아니라 "왜 다들 그렇게 하는가"다.
+
+- **역사.** 브라우저마다 동작이 제각각이던 시절에는 직접 만드는 게 합리적이었다. 지금 브라우저는
+  자동으로 갱신되는데, 그때의 습관이 남아 있다.
+- **npm부터 찾는 습관.** 문제가 생기면 패키지를 찾는다. 그런데 "CSS 한 줄이면 된다"를 알려주는
+  패키지는 없다. 저자는 `position: sticky`를 예로 든다.
+- **문서 격차.** 플랫폼 API가 있어도 그걸 찾고 이해하는 비용이 크다.
+- **재미와 애착.** 직접 만드는 건 재미있고, 직접 만든 걸 더 아끼게 된다. CSS를 잘 몰라서 JS로
+  푸는 경우도 있다.
+- **AI.** AI는 플랫폼 API를 넓게 알지만, 코드베이스에 있는 헬퍼를 무시하고 새로 쓰는 경향도 있다.
+
+직접 만든 모달을 예로 들면 챙겨야 할 게 줄줄이 따라온다. 겹침 순서(z-index), 배경 스크롤 잠금,
+Escape로 닫기, 포커스 트랩, 닫은 뒤 포커스 복귀. 결론은 구호가 과잉 설계에 대한 정당한 답답함이지만,
+반대편의 동기도 이해해야 한다는 것이다.
+
+## 내 사례: select라서 제외했다가, select를 지웠다
+
+### 7월 29일: "브라우저가 이미 처리한다"
+
+`bc344a6`에서 Modal과 Popover에 포커스 트랩과 복귀를 넣었다. 이 커밋의 자세한 내용과 그 뒤에 생긴
+Escape 스택은 [Escape 스택 글](/blog/posts/nested-overlay-escape-stack)에 정리했다. 여기서 볼 건 커밋
+본문 마지막 문단이다. Dropdown은 네이티브 `select`라서 포커스, 키보드, ARIA를 브라우저가 이미 처리하고
+있으니 완료 조건에서 뺀다고 적었다.
+
+당시 Dropdown은 이랬다.
+
+```tsx
+export const Dropdown = forwardRef<HTMLSelectElement, DropdownProps>(
+  ({ className, variant, size, options, ...props }, ref) => (
+    <select
+      ref={ref}
+      aria-invalid={variant === "error" || undefined}
+      className={cn(dropdownVariants({ variant, size }), className)}
+      {...props}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+);
+```
+
+아티클이 말하는 "플랫폼을 쓴" 상태다. 키보드로 열고 고르는 것, 화면 낭독기에 알리는 것을 모두
+브라우저에 맡기고 있었다.
+
+### 8월 5일: select를 지우고 listbox를 만들었다
+
+일주일 뒤 `0b610d3`에서 Dropdown을 다시 만들었다. 커밋 제목은 "Dropdown 컴포넌트 패밀리 신규 구현".
+7개 파일, +708/-76이다. `select`와 `option`이 사라지고 `Dropdown.tsx`, `DropdownMenu.tsx`,
+`DropdownMenuItem.tsx`로 나뉘었다.
+
+브라우저가 해 주던 일을 하나씩 직접 맡게 됐다.
+
+- 트리거에 `aria-haspopup="listbox"`, `aria-controls`, `aria-activedescendant`를 붙였다.
+- 트리거에서 ArrowDown, ArrowUp, Enter, Space로 연다.
+- 목록은 `Portal`로 띄우고 `z-popover`로 겹침 순서를 정했다.
+- 목록은 `role="listbox"`, `tabIndex={-1}`로 열릴 때 포커스를 받는다.
+- 목록 안의 키 처리는 직접 썼다.
+
+```tsx
+if (event.key === "ArrowDown") {
+  event.preventDefault();
+  if (enabledItems.length === 0) return;
+  setActiveByIndex((activeIndex + 1) % enabledItems.length);
+} else if (event.key === "ArrowUp") {
+  // ...
+} else if (event.key === "Enter") {
+  event.preventDefault();
+  const activeItem = enabledItems[activeIndex];
+  if (activeItem) selectItem(activeItem.id);
+} else if (event.key === "Escape") {
+  event.preventDefault();
+  context?.setOpen(false);
+  context?.focusTrigger();
+}
+```
+
+`DropdownMenu.tsx`는 이 커밋 뒤로 바뀌지 않았다. 지금도 목록이 처리하는 키는 이 네 개다. 네이티브
+`select`에서는 브라우저가 해 주던 Home, End, 글자를 입력해 항목으로 건너뛰기는 없다.
+
+### 8월 25일: 포커스 상태가 실제 포커스와 연결돼 있지 않았다
+
+`7e4b342`는 여러 컴포넌트에 키보드 포커스 표시를 넣은 커밋이다. 본문에 Input, Dropdown,
+DropdownMultiSelect의 `state="focus"` prop이 수동으로 켜는 값일 뿐 실제 DOM 포커스와 연결돼 있지
+않았다는 걸 발견했다고 적었다. Dropdown 트리거에서 바뀐 건 두 줄이다.
+
+```tsx
+"focus-visible:outline-none",
+// ...
+: "border-border-field-default focus-visible:border-border-field-focus",
+```
+
+디자인 시안의 "포커스 상태"를 prop으로는 만들어 뒀지만, 키보드로 포커스가 들어왔을 때 그 상태가
+켜지게 연결하는 일은 직접 만든 트리거가 따로 해야 했다. 0b610d3부터 이 커밋까지 20일 동안 그 연결이
+없었다.
+
+### 바꾼 이유는 기록돼 있지 않다
+
+이 글을 쓰면서 가장 먼저 찾은 건 `select`를 지운 이유였다. `0b610d3`의 커밋 본문은 비어 있다. 레포의
+`README.md`, `CLAUDE.md`, `AGENTS.md`에서 Dropdown, `select`, `listbox`를 검색해도 결정을 설명하는
+문장은 없다. 레포에 `docs/` 디렉터리는 없고, 이 브랜치의 머지 커밋에도 커밋 제목 한 줄만 남아 있다.
+
+"컴포넌트 패밀리"라는 제목과 메뉴 아이템 컴포넌트를 따로 만든 구조를 보면, 시안이 네이티브
+`option`으로는 표현할 수 없는 메뉴였을 거라고 추정은 할 수 있다. 하지만 추정이다. 일주일 전에는
+"브라우저가 처리한다"는 이유를 커밋 본문에 또박또박 적었는데, 그 이유를 뒤집는 결정에는 한 줄도
+남기지 않았다.
+
+## 모달 체크리스트를 DS 오버레이에 대 보면
+
+아티클의 모달 체크리스트를 지금 코드(2026-10-07 기준)의 오버레이 다섯 개에 대 봤다.
+
+| 항목             | Modal                       | BottomSheet             | Popover                 | Tooltip                 | Dropdown                               |
+| ---------------- | --------------------------- | ----------------------- | ----------------------- | ----------------------- | -------------------------------------- |
+| z-index          | `z-modal` (50)              | `z-modal` (50)          | `z-popover` (55)        | `z-tooltip` (70)        | `z-popover` (55)                       |
+| 배경 스크롤 잠금 | 미구현                      | 미구현                  | 해당 없음               | 해당 없음               | 미구현                                 |
+| Escape           | 구현 (`useEscapeStack`)     | 구현 (`useEscapeStack`) | 구현 (`useEscapeStack`) | 구현 (`useEscapeStack`) | 구현 (`useEscapeStack` + 목록 키 처리) |
+| 포커스 트랩      | 구현 (`trap: true`)         | 구현 (`trap: true`)     | 이동만 (`trap: false`)  | 해당 없음               | 없음, 목록으로 포커스 이동             |
+| 포커스 복귀      | 구현 (`useFocusTrap`)       | 구현 (`useFocusTrap`)   | 구현 (`useFocusTrap`)   | 해당 없음               | 구현 (`focusTrigger`)                  |
+| 네이티브 위임    | 없음 (`div` + `aria-modal`) | 없음 (`role="dialog"`)  | 없음                    | 없음                    | 0b610d3 전까지 전부 위임               |
+
+z-index 값은 `tokens.css`의 z-index 토큰이다. 배경 스크롤 잠금은 DS 코드에서
+`body.style`이나 `overflow` 조작을 검색해도 나오지 않는다. 다섯 개 중 직접 만들지 않은 건 그것
+하나다. 반대로 말하면 나머지는 전부 직접 만들었고, Dropdown은 원래 브라우저에 맡기던 걸 이 목록에
+새로 올렸다.
+
+토큰에는 dropdown용 값(10)도 있는데 Dropdown은 `z-popover`를 쓴다. 왜 그렇게 했는지도
+기록이 없다.
+
+## 대비
+
+|                | 아티클                             | 내 사례                                              |
+| -------------- | ---------------------------------- | ---------------------------------------------------- |
+| 질문           | 왜 플랫폼 기능을 다시 만드는가     | 왜 `select`를 지우고 `listbox`를 만들었는가          |
+| 동기           | 역사, 습관, 문서 격차, 재미, AI    | 기록이 없다. 시안 때문이라는 건 추정                 |
+| 다시 만든 대가 | 모달 체크리스트를 직접 챙겨야 한다 | 키 처리 네 개, ARIA 세 개, 포커스 표시를 직접 연결   |
+| 놓친 것        | 플랫폼이 주던 기본 동작            | Home, End, 글자 입력 이동, 실제 포커스와 상태의 연결 |
+| 결론           | 반대편 동기도 이해해야 한다        | 동기를 이해하려 해도 남은 기록이 없었다              |
+
+## 다른 점과 한계
+
+아티클은 남이 다시 만드는 이유를 이해하자는 글이다. 내 경우 다시 만든 사람이 나인데도 이유를
+복원하지 못했다. 그래서 이 사례를 "플랫폼을 안 쓴 잘못"으로 정리할 수도, "시안을 따른 정당한 선택"으로
+정리할 수도 없다. 둘 다 근거가 없다.
+
+포커스 트랩을 Dropdown에 넣지 않은 건 문제라고 보지 않는다. 목록이 열리면 포커스가 목록으로 가고,
+고르거나 Escape를 누르면 트리거로 돌아온다. 다만 바깥 클릭이나 Tab으로 목록을 벗어날 때 어떻게
+닫히는지는 이 글에서 확인하지 않았다. 화면 낭독기로 실제 읽히는 방식도 확인하지 않았다.
+
+배경 스크롤 잠금이 없다는 것도 코드 검색 결과일 뿐, 소비 앱 쪽에서 따로 잠그고 있는지는 보지 않았다.
+
+## 배운 점
+
+- 플랫폼에 맡기던 걸 직접 만들기로 할 때는 "무엇을 잃는지"를 커밋 본문에 적는다. Home, End, 글자 입력 이동처럼 잃는 건 목록으로 만들 수 있다.
+- "브라우저가 처리한다"를 근거로 범위에서 뺀 컴포넌트는, 그 근거가 사라지는 순간 다시 범위에 넣어야 한다. 20일 동안 포커스 상태가 비어 있었던 건 그 연결이 없어서였다.
+- 이유를 적지 않은 결정은 나중에 나도 변호할 수 없다. 적은 쪽의 결정만 이 글에서 인용할 수 있었다.

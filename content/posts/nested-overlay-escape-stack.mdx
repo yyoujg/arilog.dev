@@ -1,0 +1,165 @@
+---
+title: Escape 한 번에 오버레이 두 개가 닫혔다 - '인터랙티브 요소란 무엇일까요?'를 읽고 키 입력의 주인을 다시 정한 이야기
+description: dialog도 포커스를 받는 인터랙티브 요소이고, 포커스 가능과 탭 이동 가능은 다른 개념이라는 글을 읽고, 사내 디자인 시스템에서 Modal 안 Popover가 Escape 한 번에 함께 닫히던 문제를 다시 봤다. 포커스를 가진 오버레이가 여럿일 때 누가 키 입력을 받는지를 React 트리 깊이로 정했다.
+date: 2026-09-28
+category: 디자인 시스템
+tags:
+  - 접근성
+  - 포커스 관리
+  - 디자인 시스템
+  - React
+  - 회고
+draft: true
+---
+
+> 관련 프로젝트: [사내 디자인 시스템](/projects/design-system)
+> 관련 글: [진동이 울리는 기준을 셀렉터로 정했다](/blog/posts/what-counts-as-tappable)
+> 읽은 글: [[번역] 인터랙티브 요소란 무엇일까요?](https://devowen.com/554) ([원문](https://www.matuzo.at/blog/2025/whats-an-interactive-element) Manuel Matuzovic, 오웬 번역)
+
+이 글은 개인 프로젝트에서 "누를 수 있는 것"을 정의한 이야기로 한 번 정리했다. 다시 읽으면서
+떠오른 건 회사 일이었다. 사내 디자인 시스템에 포커스 트랩을 넣은 날, Modal 안의 Popover에서
+Escape를 한 번 눌렀더니 둘 다 닫혔다. 아티클이 "무엇이 포커스를 받는가"를 묻는다면, 내가 풀어야
+했던 건 "포커스를 가진 오버레이가 여럿일 때 키 입력의 주인은 누구인가"였다.
+
+## 아티클 요약: 포커스는 한 가지 성질이 아니다
+
+저자는 MDN이 `dialog`를 인터랙티브 요소가 아니라고 설명한 부분을 반박한다. 열린 `dialog`는
+사용자가 다루는 요소이고 포커스를 받는다. 그러니 인터랙티브하다는 것이다.
+
+이 주장을 받치려고 저자는 포커스와 관련된 성질을 셋으로 나눈다.
+
+| 성질           | 뜻                                                       |
+| -------------- | -------------------------------------------------------- |
+| 포커스 가능    | 스크립트의 `focus()`나 `autofocus`로 포커스를 줄 수 있다 |
+| 탭 이동 가능   | Tab 키 순서에 들어간다                                   |
+| 클릭 시 포커스 | 마우스로 눌렀을 때 포커스가 간다                         |
+
+셋은 서로 독립이다. `tabindex="-1"`로 탭 순서에서 빼고 프로그래밍 포커스만 받게 하는 건
+정당한 쓰임이다. 다만 `div`를 탭 이동 가능하게 만들어 버튼처럼 쓰지 말고 그냥 `button`을
+쓰라고 한다. 또 어떤 영역이 포커스를 받으려면 비활성화되지 않았고, `inert`가 아니고, 실제로
+렌더링되고 있어야 한다.
+
+마지막으로 열린 `dialog`의 포커스 동작이 브라우저마다 다르다는 점을 보여 준다. 저자가 확인한
+버전 기준으로 Firefox 144는 클릭으로만 포커스가 가고, Chrome 141과 Safari 18.6은 탭 이동으로도
+간다. 명세상 같은 요소인데 "포커스를 받는다"의 범위가 다르다.
+
+## 내 사례: 오버레이 셋이 각자 Escape를 듣고 있었다
+
+### 먼저 포커스를 넣었다
+
+같은 날(2026-07-29) 앞선 커밋 `bc344a6`에서 Modal과 Popover에 포커스 트랩과 복귀를 넣었다.
+Modal은 열릴 때 첫 포커스 가능 요소로 이동하고 Tab이 패널 밖으로 나가지 않게 막는다.
+Popover는 열릴 때 패널로 포커스를 옮기고 닫힐 때 트리거로 돌려준다. 공통 로직은
+`lib/useFocusTrap.ts`로 뺐다.
+
+포커스 가능 요소를 고르는 기준은 셀렉터 한 줄이었다.
+
+```ts
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+```
+
+`disabled`를 빼고 `tabindex="-1"`을 빼는 건 아티클의 구분과 같다. 탭 이동 가능한 것만 트랩
+순환 대상으로 삼는다. 포커스할 요소가 하나도 없으면 컨테이너 자체에 `tabindex="-1"`을 붙여
+프로그래밍 포커스만 받게 했다. 아티클이 말한 "탭 순서에는 넣지 않고 포커스만 받는" 쓰임이다.
+
+구현을 `open` 상태에 매인 `useEffect`가 아니라 콜백 ref로 한 데는 이유가 있었다. Popover의
+Portal은 SSR에서 안전하도록 두 번에 나눠 마운트한다. 첫 렌더에서는 노드가 없고 다음 렌더에서
+붙는다. `open`이 바뀌는 시점과 노드가 실제로 붙는 시점이 어긋나니, `open`을 기준으로 포커스를
+옮기면 아직 없는 노드를 찾게 된다. 콜백 ref는 노드가 붙고 떨어지는 순간에 실행된다. 아티클의
+조건 중 "렌더링 중이어야 한다"를 타이밍 문제로 만난 셈이다.
+
+### 증상: Escape 한 번에 둘 다 닫힌다
+
+포커스가 Modal 안 Popover로 들어간 상태에서 Escape를 누르면 Popover만 닫혀야 한다. 실제로는
+Modal까지 닫혔다.
+
+### 원인: 리스너가 셋, 판단 기준이 없었다
+
+Modal, Popover, Tooltip이 각자 열려 있는 동안 `document`에 `keydown` 리스너를 달고 있었다.
+Modal 쪽 코드는 이랬다.
+
+```ts
+useEffect(() => {
+  if (!open) return;
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      onClose?.();
+    }
+  };
+
+  document.addEventListener("keydown", onKeyDown);
+  return () => document.removeEventListener("keydown", onKeyDown);
+}, [onClose, open]);
+```
+
+열린 오버레이가 둘이면 Escape 한 번에 리스너 둘이 모두 실행된다. 누가 안쪽인지 판단할
+방법도 마땅치 않았다. 마운트 순서로는 알 수 없다. React 이펙트는 자식이 부모보다 먼저
+실행되니, 등록 순서로 보면 Modal 안의 Popover가 Modal보다 먼저 등록될 수 있다. DOM 위치도
+기준이 못 된다. Popover와 Tooltip은 Portal로 `body` 아래에 붙으니 DOM상으로는 Modal의 자식이
+아니다.
+
+### 수정: 스택 하나, 리스너 하나, 깊이는 React 트리에서
+
+`22e9d72`에서 `lib/escapeStack.ts`를 만들었다. 모듈 전역에 스택을 두고 `document` 리스너는 스택이
+비어 있지 않은 동안 하나만 단다. 중첩 깊이는 `EscapeScopeContext`로 React 트리를 따라 내려보낸다.
+Portal로 DOM 위치가 바뀌어도 React 트리상의 깊이는 그대로이기 때문이다.
+
+```ts
+function topEntry(): StackEntry | undefined {
+  return stack.reduce<StackEntry | undefined>(
+    (top, entry) => (!top || entry.depth >= top.depth ? entry : top),
+    undefined,
+  );
+}
+
+function onKeyDown(event: KeyboardEvent) {
+  if (event.key !== "Escape") return;
+  topEntry()?.onEscape();
+}
+```
+
+가장 깊은 오버레이가 반응하고, 깊이가 같으면 나중에 열린 쪽이 반응한다. Modal은 자기 children을
+`depth + 1`인 Provider로 감싸고, 각 오버레이는 리스너를 직접 다는 대신 `useEscapeStack(open, onClose)`
+한 줄을 부른다.
+
+테스트는 `lib/escapeStack.test.tsx`(77줄)에 세 케이스로 넣었다. Modal 안 Popover에서 첫 Escape는
+Popover만 닫고, 두 번째 Escape가 Modal을 닫는다. Modal 안 Modal도 안쪽부터 하나씩 닫힌다.
+
+`escapeStack.ts`는 그 뒤로 바뀌지 않았다. 지금 레포를 grep하면 `useEscapeStack`을 부르는
+컴포넌트는 Modal, Popover, Tooltip, BottomSheet, Dropdown 다섯 개이고, `useFocusTrap`은 Modal,
+Popover, BottomSheet 세 곳이 쓴다. 나중에 추가된 컴포넌트도 리스너를 따로 달지 않고 같은 스택에
+들어왔다.
+
+## 대비
+
+|               | 아티클                                      | 내 사례                                                      |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| 질문          | 이 요소는 포커스를 받는가                   | 포커스를 가진 여러 오버레이 중 누가 키 입력을 받는가         |
+| 구분한 것     | 포커스 가능, 탭 이동 가능, 클릭 포커스      | 포커스 이동, 탭 순환, Escape 소유권                          |
+| 렌더링 조건   | 렌더링 중이 아니면 포커스 영역이 아니다     | Portal 2-pass 마운트 때문에 노드 부착 시점을 콜백 ref로 잡음 |
+| 판단 기준     | 명세의 포커스 가능 영역 조건                | DOM 위치나 등록 순서가 아니라 React 트리 깊이                |
+| 브라우저 차이 | 열린 `dialog`의 포커스 동작이 엔진마다 다름 | 네이티브 요소를 쓰지 않아 동작을 직접 정의                   |
+
+## 다른 점과 한계
+
+아티클은 네이티브 `dialog`를 다룬다. 우리 Modal과 Popover는 `div` 기반으로 포커스 트랩과 Escape를
+직접 구현했다. 네이티브 `dialog`를 쓰지 않은 이유는 커밋에도 문서에도 기록이 없다. 브라우저마다
+다른 `dialog` 포커스 동작을 피했다고 말할 수 있으면 좋겠지만, 그렇게 판단했다는 근거는 없다.
+결과적으로 동작을 우리가 정의하게 됐고, 그만큼 접근성 책임도 우리 코드에 있다.
+
+셀렉터 기준도 아티클의 조건을 다 담지 못한다. `disabled`와 `tabindex="-1"`은 거르지만 `inert`나
+화면에 렌더링되지 않은 요소는 거르지 않는다. 또 Escape 스택은 Escape만 다룬다. 외부 클릭으로 닫는
+동작은 각 컴포넌트에 남아 있어서, 같은 중첩 상황에서 바깥 클릭이 어떻게 처리되는지는 이 글에서
+확인하지 않았다.
+
+`bc344a6`에서 Dropdown은 네이티브 `select`라 포커스와 키보드를 브라우저가 처리한다는 이유로 범위에서
+뺐다. 지금은 Dropdown도 `useEscapeStack`을 쓴다. 그 사이 구현이 바뀐 셈인데, 이 글에서는 그 과정을
+따로 보지 않았다.
+
+## 배운 점
+
+- "포커스가 있다"와 "키 입력의 주인이다"는 다른 질문이다. 오버레이가 중첩되면 두 번째 질문에 답하는 곳이 한 군데 있어야 한다.
+- Portal을 쓰는 컴포넌트에서 중첩 여부는 DOM으로 판단할 수 없다. React 트리를 따라 내려가는 값으로 판단한다.
+- 노드가 실제로 붙는 시점이 중요할 때는 상태에 매인 이펙트보다 콜백 ref가 정확하다.
