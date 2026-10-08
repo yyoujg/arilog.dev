@@ -39,7 +39,7 @@ loader가 쿼리를 미리 채우고, 컴포넌트는 같은 쿼리를 읽어 �
 
 ## 내 사례: 조회 조건이 네 곳에 흩어져 있었다
 
-라우터 loader를 쓴 프로젝트는 아니다. 셋 다 React Query에 Recoil이나 Jotai, 폼 상태가
+라우터 loader를 쓴 프로젝트는 아니다. 셋 다 React Query에 상태 라이브러리(캘린더는 Zustand, 대시보드는 Jotai, 결제 화면은 Recoil과 Zustand)와 폼 상태가
 얹힌 구조다. 그런데 "언제, 무엇으로 조회하는가"라는 한 가지 결정이 쿼리 키, `enabled`,
 effect, 컴포넌트 마운트 여부에 나뉘어 있었다는 점이 아티클의 상황과 같았다.
 
@@ -52,14 +52,20 @@ effect, 컴포넌트 마운트 여부에 나뉘어 있었다는 점이 아티클
 
 ```ts
 // 5461c17 이전: useQuery.ts
-queryKey: (["availableRoomDate"],
-  // 5461c17 이전: useSearchPanelSelectDate.tsx
-  useEffect(() => {
-    queryClient.invalidateQueries({
-      queryKey: ["availableRoomDate"],
-      refetchType: "all",
-    });
-  }, [hotelIdList, perRoomList, currentCalendarDate]));
+useQuery<AvailableRoomDateListResponse>({
+  queryKey: ["availableRoomDate"],
+  // ...
+});
+```
+
+```tsx
+// 5461c17 이전: useSearchPanelSelectDate.tsx
+useEffect(() => {
+  queryClient.invalidateQueries({
+    queryKey: ["availableRoomDate"],
+    refetchType: "all",
+  });
+}, [hotelIdList, perRoomList, currentCalendarDate]);
 ```
 
 이 구조에서는 "무엇으로 조회하는가"가 두 곳에 있다. 요청 본문은 쿼리 함수에, 다시 받아야 하는
@@ -160,14 +166,17 @@ enabled: !!lang && !!hotelId && !!checkInDate && !!checkOutDate && !!pplCnt && !
 2025-03-12 `83b2cb03`에서 14개 파일의 모달을 조건부 마운트로 바꿨다.
 
 ```tsx
-{
-  optionHotelModal && (
-    <OptionHotelModal
-      setIsOptionHotelModal={setIsOptionHotelModal}
-      open={optionHotelModal}
-    />
-  );
-}
+const modal = (
+  <>
+    {optionHotelModal && (
+      <OptionHotelModal
+        setIsOptionHotelModal={setIsOptionHotelModal}
+        open={optionHotelModal}
+      />
+    )}
+    {/* ... */}
+  </>
+);
 ```
 
 행 수 곱하기 쿼리 수로 실제 몇 건이 미리 나가고 있었는지는 기록이 없다. 측정하지 않고 고쳤다.

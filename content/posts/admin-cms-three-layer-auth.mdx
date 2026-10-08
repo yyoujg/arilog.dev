@@ -13,9 +13,9 @@ draft: false
 
 ## 왜 admin을 직접 만들었나
 
-이 블로그는 **DB가 없다.** 글은 전부 `content/posts/*.mdx` 파일이고, 그 파일이 곧 콘텐츠 소스다. 구조는 단순해서 좋지만 대가가 하나 있었다 — **글을 발행하려면 로컬에서 git 커밋을 해야 한다.** 노트북 앞이 아니면 오탈자 하나 못 고친다.
+이 블로그는 **DB가 없다.** 글은 전부 `content/` 아래 mdx 파일이고(로더가 `projects/`를 뺀 하위 폴더를 재귀로 읽는다. admin이 글을 커밋하는 곳은 `content/posts/`다), 그 파일이 곧 콘텐츠 소스다. 구조는 단순해서 좋지만 대가가 하나 있었다 — **글을 발행하려면 로컬에서 git 커밋을 해야 한다.** 노트북 앞이 아니면 오탈자 하나 못 고친다.
 
-"파일 없이, 브라우저에서 어디서나 글쓰기." 이 한 줄 요구를 풀려고 admin을 붙였다. DB를 새로 얹는 대신, **admin이 GitHub API로 레포에 직접 커밋**하게 했다. 발행 버튼을 누르면 Octokit(`@octokit/rest`)이 fine-grained PAT(`contents:write` 권한만)으로 `main` 브랜치의 mdx 파일을 커밋한다. 스토리지 추가 0개, 여전히 mdx가 소스다.
+"파일 없이, 브라우저에서 어디서나 글쓰기." 이 한 줄 요구를 풀려고 admin을 붙였다. DB를 새로 얹는 대신, **admin이 GitHub API로 레포에 직접 커밋**하게 했다. 발행 버튼을 누르면 Octokit(`@octokit/rest`)이 fine-grained PAT(`contents:write`, 그리고 강제로 붙는 `metadata:read`만)으로 `main` 브랜치의 mdx 파일을 커밋한다. 스토리지 추가 0개, 여전히 mdx가 소스다.
 
 그런데 이 설계에는 정직하게 마주해야 할 문제가 하나 있다. **admin은 결국 "공개 사이트에 쓰기 권한을 뚫는 문"이다.** 이 문의 인증이 뚫리면 남의 손이 내 블로그 레포에 커밋한다. 그래서 이 글의 진짜 주제는 CMS 기능이 아니라 **인증을 어디에, 몇 겹으로 거느냐**다.
 
@@ -61,7 +61,7 @@ if (!session?.user || session.user.login !== env.ADMIN_GITHUB_USERNAME) {
 
 **Layer 3 — 서버 액션 시점 재검증 (`requireAdmin()`)**
 
-가장 중요한 겹. `createPost` · `updatePost` · `deletePost` · `renderPreviewAction` **각 서버 액션이 실행되는 바로 그 순간** `requireAdmin()`으로 세션을 또 확인한다. 화면 렌더링과 무관하게, **쓰기 동작 직전에 매번** 인증을 재확인한다는 뜻이다.
+가장 중요한 겹. 지금은 `createPost` · `updatePost` · `deletePost`, 프로젝트용 `createProject`, `updateProject`, `deleteProject`, `uploadImage`, 미리보기 렌더용 `renderPreviewAction`까지 **8개 서버 액션 모두 실행되는 바로 그 순간** `requireAdmin()`으로 세션을 또 확인한다. 화면 렌더링과 무관하게, **쓰기 동작(과 미리보기 렌더) 직전에 매번** 인증을 재확인한다는 뜻이다.
 
 ```ts
 // src/lib/admin/actions.tsx
@@ -74,7 +74,7 @@ async function requireAdmin(): Promise<void> {
 
 export async function createPost(input: PostFormInput) {
   await requireAdmin(); // 미들웨어를 우회당해도, 커밋 직전 여기서 다시 막힌다
-  // ... Octokit 커밋 (commitPost)
+  // ... Octokit 커밋 (commitContentFile)
 }
 ```
 
@@ -86,7 +86,7 @@ export async function createPost(input: PostFormInput) {
 
 첫째, **허용 계정은 GitHub 단일 화이트리스트.** `signIn` 콜백에서 `profile.login`을 `ADMIN_GITHUB_USERNAME`과 비교해, 내 계정이 아니면 아예 로그인 자체가 성립하지 않는다. GitHub OAuth로 "누구나 로그인은 되지만, 통과는 나만".
 
-둘째, **토큰 권한은 `contents:write` 하나뿐.** 커밋용 PAT를 fine-grained로 발급하고 필요한 레포의 contents 쓰기 외 모든 권한을 뺐다. 토큰이 유출돼도 할 수 있는 건 그 레포에 파일 커밋뿐 — issue, settings, 다른 레포는 손댈 수 없다.
+둘째, **토큰 권한은 `contents:write` 하나만 골랐다.** 커밋용 PAT를 fine-grained로 발급하고 필요한 레포의 contents 쓰기 외 권한은 주지 않았다(fine-grained PAT에 강제로 포함되는 `metadata:read`는 예외). 토큰이 유출돼도 할 수 있는 건 그 레포에 파일 커밋뿐 — issue, settings, 다른 레포는 손댈 수 없다.
 
 ## 정직한 트레이드오프: beta 라이브러리를 프로덕션에
 

@@ -16,8 +16,8 @@ draft: true
 > 관련 글: [레포에 둔 지침도 낡았다](/blog/posts/agent-instructions-in-repo)
 > 읽은 글: [(번역) 에이전트 네이티브가 팀 전체에 의미하는 것](https://handhand.tistory.com/entry/what-agent-native-means-for-the-whole-team) (Builder.io [원문](https://www.builder.io/blog/what-agent-native-means-for-the-whole-team), HandHand 번역)
 
-이 글은 [레포에 둔 지침도 낡았다](/blog/posts/agent-instructions-in-repo)에서 개인 프로젝트 사례로 한 번
-다뤘다. 그때는 혼자 쓰는 레포라 경계도 레포 안에서 끝났다. 회사의 사내 디자인 시스템은 사정이 달랐다.
+같은 주제를 개인 프로젝트 사례로 다룬 글은 [레포에 둔 지침도 낡았다](/blog/posts/agent-instructions-in-repo)다.
+개인 프로젝트는 혼자 쓰는 레포라 경계도 레포 안에서 끝났다. 회사의 사내 디자인 시스템은 사정이 달랐다.
 여러 사람이 커밋하는 팀 레포이고, 만든 결과물을 소비 앱(예약 SaaS, 운영 백오피스)이 받아 쓴다. 그래서
 경계를 레포 안과 레포 밖, 두 군데에 그어야 했다.
 
@@ -48,11 +48,11 @@ draft: true
 
 문서는 읽히지 않으면 효과가 없다. 07-29 `b95287c`에서 git 훅 세 개를 넣었다.
 
-| 훅         | 하는 일                                                                              |
-| ---------- | ------------------------------------------------------------------------------------ |
-| pre-commit | `.env*`, `.gitignore` 변경과 tsconfig `moduleResolution` 변경 차단, 변경 파일만 lint |
-| commit-msg | `type(티켓키): 설명` 형식이 아니면 차단                                              |
-| pre-push   | `npm run typecheck`                                                                  |
+| 훅         | 하는 일                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| pre-commit | `.env*`, `.gitignore` 변경과 tsconfig `moduleResolution` 변경 차단, 변경 파일만 lint                |
+| commit-msg | `type(티켓키): 설명` 형식이 아니면 차단(`Merge `로 시작하는 메시지, 버전 번호만 있는 메시지는 통과) |
+| pre-push   | `npm run typecheck`                                                                                 |
 
 `.gitignore`와 `moduleResolution`은 의도된 변경이면 확인 후 `--no-verify`로 넘기라는 안내를 같이 출력한다.
 막는 것과 승인을 받고 넘기는 것을 나눈 셈이다.
@@ -62,7 +62,7 @@ draft: true
 토큰은 Figma에서 `tokens.json`으로 사람이 옮긴다. 이 과정에서 생긴 사고들은
 [알파값 유실](/blog/posts/design-token-alpha-lost)처럼 전부 사후에 발견됐다. 08-03에 두 개를 넣었다.
 
-- `12789f1`: `scripts/validate-tokens.mjs`. 존재하지 않는 `var(--h2o-*)` 참조, alias 순환, 숫자 접미사 불일치, opacity와 drop-shadow 토큰의 알파 손실을 light와 dark 양쪽에서 검사하고, `build:tokens` 앞단에서 돌린다.
+- `12789f1`: `scripts/validate-tokens.mjs`. 존재하지 않는 `var(--ds-*)` 참조, alias 순환, 숫자 접미사 불일치, opacity와 drop-shadow 토큰의 알파 손실을 light와 dark 양쪽에서 검사하고, `build:tokens` 앞단에서 돌린다.
 - `ccda259`: `scripts/scan-consumer-impact.mjs`. 기존 토큰의 값이 바뀌었을 때, 그 토큰을 참조하는 소비 앱 파일을 찾아 표로 보여 준다.
 
 순서에 사연이 있다. 검증 단계를 `build:tokens`에 연결하는 변경이 스크립트가 완성되기 전에 버전업
@@ -80,10 +80,10 @@ draft: true
 `scripts/check-tokens.sh`를 넣었다.
 
 ```sh
-STYLES="node_modules/@h2o/design-system/dist/styles.css"
-[ -f "$STYLES" ] || { echo "SKIP: @h2o/design-system 미설치"; exit 0; }
+STYLES="node_modules/@design-system/dist/styles.css"
+[ -f "$STYLES" ] || { echo "SKIP: @design-system 미설치"; exit 0; }
 
-vars=$(grep -rhoE '\-\-h2o-[a-z0-9-]+' \
+vars=$(grep -rhoE '\-\-ds-[a-z0-9-]+' \
   --include='*.ts' --include='*.tsx' --include='*.css' \
   components app 2>/dev/null | sort -u)
 
@@ -96,7 +96,7 @@ done
 exit $missing
 ```
 
-소비 앱 소스가 참조하는 `--h2o-*` 변수를 모아, 설치된 디자인 시스템 `dist/styles.css`에 실제로 정의돼
+소비 앱 소스가 참조하는 `--ds-*` 변수를 모아, 설치된 디자인 시스템 `dist/styles.css`에 실제로 정의돼
 있는지 대조한다. 하나라도 없으면 `MISS`를 찍고 `exit 1`이다.
 
 ### 추측이 남긴 흔적: Logo

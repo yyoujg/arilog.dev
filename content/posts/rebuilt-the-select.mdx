@@ -73,7 +73,7 @@ export const Dropdown = forwardRef<HTMLSelectElement, DropdownProps>(
 
 ### 8월 5일: select를 지우고 listbox를 만들었다
 
-일주일 뒤 `0b610d3`에서 Dropdown을 다시 만들었다. 커밋 제목은 "Dropdown 컴포넌트 패밀리 신규 구현".
+일주일 뒤 `0b610d3`에서 Dropdown을 다시 만들었다. 커밋 제목은 "Dropdown 컴포넌트 패밀리 신규 구현 + size-limit 조정".
 7개 파일, +708/-76이다. `select`와 `option`이 사라지고 `Dropdown.tsx`, `DropdownMenu.tsx`,
 `DropdownMenuItem.tsx`로 나뉘었다.
 
@@ -126,7 +126,7 @@ DropdownMultiSelect의 `state="focus"` prop이 수동으로 켜는 값일 뿐 �
 
 이 글을 쓰면서 가장 먼저 찾은 건 `select`를 지운 이유였다. `0b610d3`의 커밋 본문은 비어 있다. 레포의
 `README.md`, `CLAUDE.md`, `AGENTS.md`에서 Dropdown, `select`, `listbox`를 검색해도 결정을 설명하는
-문장은 없다. 레포에 `docs/` 디렉터리는 없고, 이 브랜치의 머지 커밋에도 커밋 제목 한 줄만 남아 있다.
+문장은 없다. 레포에 `docs/` 디렉터리는 없고, 이 브랜치의 머지 커밋에도 커밋 제목 한 줄과 merge request 참조 줄만 남아 있다.
 
 "컴포넌트 패밀리"라는 제목과 메뉴 아이템 컴포넌트를 따로 만든 구조를 보면, 시안이 네이티브
 `option`으로는 표현할 수 없는 메뉴였을 거라고 추정은 할 수 있다. 하지만 추정이다. 일주일 전에는

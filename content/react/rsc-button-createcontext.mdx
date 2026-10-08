@@ -1,7 +1,7 @@
 ---
 title: "createContext is not a function — 서버 컴포넌트에서 shadcn Button이 빌드를 깨뜨릴 때"
 description: Radix Slot이 use client 없이 top-level에서 createContext를 호출해 서버 컴포넌트 빌드가 깨진 문제를, variants를 별도 파일로 분리해 해결한 과정.
-date: 2026-07-25
+date: 2026-07-23
 category: React
 tags:
   - React
@@ -27,13 +27,13 @@ TypeError: createContext is not a function
 내 코드 어디에도 `createContext`는 없었다. 스택을 따라가면 진원지는
 `@radix-ui/react-slot`, 즉 `Button`이 `asChild`를 위해 쓰는 의존성이었다.
 
-급한 마음에 흔한 우회를 했다. `button.tsx` 맨 위에 `"use client"`를 붙였다.
-빌드는 통과했다. 그런데 이건 문제를 고친 게 아니라 옮긴 것이었다.
+흔한 우회는 `button.tsx` 맨 위에 `"use client"`를 붙이는 것이다. 그러면
+빌드는 통과한다. 그런데 이건 문제를 고치는 게 아니라 옮기는 것이다.
 
 `"use client"`를 붙이는 순간 `Button`은 통째로 클라이언트 경계가 된다. 이후
 `onClick` 하나 없는 순수 링크 버튼을 렌더해도, 그 버튼마다 클라이언트 번들과
 하이드레이션이 딸려붙는다. 서버에서 정적 HTML로 끝났어야 할 마크업에 불필요한
-JS가 실린다. 빌드는 초록불이 됐지만 대가를 치른 초록불이었다.
+JS가 실린다. 빌드는 초록불이 되지만 대가를 치른 초록불이다.
 
 ## 원인: Slot이 top-level에서 createContext를 호출한다
 
@@ -52,15 +52,16 @@ var SlotContext = React.createContext(mergeProps);
   환경은 이 모듈을 서버 모듈로 취급하고, 서버 렌더 시점에 top-level 코드를
   그대로 평가한다.
 
-서버 렌더링 컨텍스트에서는 `React.createContext`가 존재하지 않는다. 컨텍스트는
-클라이언트 개념이기 때문이다. 그래서 모듈이 평가되자마자 `createContext is not
+RSC 그래프에서 `react`는 `react-server` 조건의 빌드로 해석되고, 이 빌드에는
+`React.createContext`가 없다(일반 SSR 빌드에는 있다). 컨텍스트는 서버 컴포넌트에서
+쓸 수 없는 개념이기 때문이다. 그래서 모듈이 평가되자마자 `createContext is not
 a function`으로 던진다. 컴포넌트를 렌더하기도 전에, import를 해석하는 단계에서
 깨지는 것이다.
 
 여기서 중요한 사실 하나. `button.tsx`에 `"use client"`를 붙이든 안 붙이든,
 **Slot을 import하는 모듈이 서버 그래프에 들어가는 한** 이 평가는 일어난다.
-`"use client"`가 빌드를 통과시킨 건 문제를 없애서가 아니라, `Button`을 서버
-그래프에서 빼내 클라이언트 그래프로 밀어넣었기 때문이다. 근본 원인은 그대로다.
+`"use client"`가 빌드를 통과시키는 건 문제를 없애서가 아니라, `Button`을 서버
+그래프에서 빼내 클라이언트 그래프로 밀어넣기 때문이다. 근본 원인은 그대로다.
 
 <Callout type="info">
   대조군으로 `lucide-react`를 열어봤다. 이쪽은 `Icon.mjs`와 `context.mjs` 상단에
@@ -69,14 +70,16 @@ a function`으로 던진다. 컴포넌트를 렌더하기도 전에, import를 �
   그대로 렌더해도 깨지지 않는다. 차이는 소스 한 줄, `"use client"`의 유무다.
 </Callout>
 
-## 함정: 트리셰이킹은 이 문제를 못 막는다
+## 함정: 트리셰이킹에 기대면 안 된다
 
 여기서 자연스러운 반문이 나온다. "그럼 `Button`은 놔두고 `buttonVariants`만
 가져오면 되지 않나? variants는 스타일 함수일 뿐 Slot이랑 상관없잖아."
 
-처음엔 나도 그렇게 생각했다. 그리고 그게 함정이었다. shadcn 기본 구성처럼
+처음엔 나도 그렇게 생각했다. 그런데 기댈 근거가 약하다. shadcn 기본 구성처럼
 `buttonVariants`를 `button.tsx`에서 export하면, 서버 컴포넌트가 variants만
-가져와도 똑같이 깨진다.
+가져와도 `button.tsx`와 그 import가 서버 그래프에 들어간다. 실제로 깨지는지는
+번들러가 안 쓰는 import를 얼마나 걷어내느냐에 달렸고, 이 조합은 따로 재현해보지
+않았다.
 
 이유를 이해하려면 JS 모듈 시스템의 기본 동작 하나를 짚어야 한다.
 
@@ -89,14 +92,16 @@ a function`으로 던진다. 컴포넌트를 렌더하기도 전에, import를 �
 `createContext`가 실행된다. 내가 `buttonVariants`를 쓰는지 `Button`을 쓰는지는
 아무 상관이 없다.
 
-"안 쓰는 export는 트리셰이킹으로 지워지지 않나?"는 여기서 통하지 않는다.
-트리셰이킹은 최종 번들에서 **참조되지 않는 코드를 제거**하는 최적화지, 모듈의
-top-level 부작용을 건너뛰는 기능이 아니다. 게다가 지금 에러는 번들링 이후가
-아니라 서버가 모듈을 평가하는 시점에 터진다. 최적화가 개입하기도 전이다.
+"안 쓰는 export는 트리셰이킹으로 지워지지 않나?"는 보장이 아니다.
+트리셰이킹은 번들러가 **참조되지 않는 코드를 제거**하는 최적화고, 모듈의
+top-level 부작용을 건너뛰는 건 그 모듈이 부작용이 없다고 선언했을 때만 기대할 수
+있다. `@radix-ui/react-slot`은 `package.json`에 `"sideEffects": false`를 선언하고
+있어서, 번들러가 안 쓰는 Slot import를 걷어내 통과할 수도 있다. 다만 그건 번들러
+구현과 설정에 달린 결과라, 서버 경계의 안전을 맡길 근거로는 약하다.
 
 정리하면 이렇다. 오염은 **내가 무엇을 import하느냐**(export 단위)가 아니라
 **그 모듈이 무엇을 딸고 오느냐**(import 단위)로 결정된다. `buttonVariants`는
-결백해도, 그게 사는 집인 `button.tsx`가 Slot을 데리고 있으면 같이 오염된다.
+결백해도, 그게 사는 집인 `button.tsx`가 Slot을 데리고 있으면 같이 오염될 수 있다.
 
 ## 해결: variants를 Slot 없는 파일로 분리
 
@@ -126,8 +131,8 @@ export const buttonVariants = cva(
 안전하다. 그래서 서버 컴포넌트가 여기서 `buttonVariants`를 가져와도 어떤
 `createContext`도 평가되지 않는다.
 
-`button.tsx`는 이제 variants를 새 파일에서 다시 import해서 쓴다. 그리고
-`"use client"`는 제거했다. Slot과 `createContext`는 여전히 이 모듈의 그래프에
+`button.tsx`는 variants를 새 파일에서 import해서 쓴다. `"use client"`는 붙이지
+않았다. Slot과 `createContext`는 여전히 이 모듈의 그래프에
 있지만, 이 파일을 import하는 쪽은 이제 **클라이언트 컴포넌트뿐**이라 서버
 평가가 일어나지 않는다.
 
@@ -167,7 +172,8 @@ export { Button };
 
 - **서버 컴포넌트에서 링크 버튼이 필요할 때**: `buttonVariants()` + `next/link`.
   Slot을 안 건드리므로 안전하고, 정적 HTML로 끝난다.
-- **클라이언트 컴포넌트에서 진짜 버튼이 필요할 때**(`onClick`, `asChild`):
+- **클라이언트 컴포넌트에서 진짜 버튼이 필요할 때**(`onClick`, Radix
+  `Trigger`/`Close`의 `asChild` 자식):
   `Button`. 이건 어차피 클라이언트 경계 안이라 Slot을 써도 문제없다.
 
 서버 쪽 사용은 이렇게 된다.
@@ -187,17 +193,18 @@ export default function Cta() {
 
 <Callout type="warn">
   `buttonVariants`를 `button.tsx`에서 다시 export하고 싶은 유혹이 생긴다. 그러면
-  원점이다. 서버 컴포넌트가 그 재-export를 가져오는 순간 `button.tsx`가 평가되고
-  Slot이 딸려온다. 진입점이 별도 파일이라는 사실 자체가 해결책이므로, variants의
-  정식 출처는 `button-variants.ts` 하나로 유지한다.
+  원점이다. 서버 컴포넌트가 그 재-export를 가져오는 순간 `button.tsx`와 Slot의
+  `import`가 다시 서버 그래프에 들어온다. 진입점이 별도 파일이라는 사실 자체가
+  해결책이므로, variants의 정식 출처는 `button-variants.ts` 하나로 유지한다.
 </Callout>
 
 ## 결과
 
 서버 컴포넌트가 `buttonVariants` + `next/link`로 링크 버튼을 렌더해도 빌드가
-통과한다. 이 경로에는 클라이언트 JS가 실리지 않는다. `Button`은 `onClick`이나
-`asChild`가 실제로 필요한 클라이언트 컴포넌트에서만 쓰이고, `"use client"`
-우회를 걷어내면서 불필요하던 클라이언트 경계 하나가 사라졌다.
+통과한다. 이 경로에는 클라이언트 JS가 실리지 않는다. `Button`은 `onClick`이
+필요하거나 Radix `Trigger`/`Close`의 `asChild` 자식으로 들어가는 클라이언트
+컴포넌트에서만 쓰이고, `"use client"` 우회로 불필요한 클라이언트 경계를 만들지도
+않았다.
 
 ## 트레이드오프
 
@@ -212,15 +219,15 @@ export default function Cta() {
 
 `Button`을 아예 버리고 `buttonVariants`만 쓰면 파일을 안 나눠도 되지 않느냐는
 선택지도 있다. 실제로 `asChild`도 `onClick`도 필요 없는 프로젝트라면 그게 더
-단순하다. 나는 클라이언트 쪽에서 `asChild`로 합성하는 버튼이 몇 군데 있어
-`Button` 자체는 남겼고, 그래서 분리가 필요했을 뿐이다. 어느 쪽이 항상 옳다는
+단순하다. 나는 클라이언트 쪽에서 `Button`을 Radix `DialogTrigger`나 `SheetTrigger`
+같은 `asChild` 트리거의 자식으로 쓰는 곳이 몇 군데 있어 `Button` 자체는 남겼고, 그래서 분리가 필요했을 뿐이다. 어느 쪽이 항상 옳다는
 얘기는 아니다.
 
 ## 배운 점: 모듈 그래프는 import 단위로 오염된다
 
 이 버그에서 건진 핵심은 하나다. **모듈 그래프의 오염은 내가 무엇을 꺼내
 쓰느냐가 아니라, 그 모듈이 무엇을 데려오느냐로 결정된다.** `buttonVariants`
-하나만 가져와도 Slot이 딸려온 건, import가 심볼이 아니라 모듈 전체를 평가하기
+하나만 가져와도 Slot이 딸려올 수 있는 건, import가 심볼이 아니라 모듈 전체를 평가하기
 때문이다. RSC 경계를 그을 때는 "이 컴포넌트를 서버에서 쓰나?"가 아니라 "이
 모듈의 import 그래프에 클라이언트 전용 top-level 평가가 섞여 있나?"를 물어야
 한다. 위험은 export 목록이 아니라 import 목록에 있다.

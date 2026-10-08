@@ -1,8 +1,8 @@
 ---
 title: 멀티테넌트 예약 SaaS
-summary: 하나의 코드베이스로 N개 시설의 예약 사이트를 서브도메인별로 제공하는 멀티테넌트 SaaS. 프론트엔드 아키텍처·보안 설계부터 단독 구축.
+summary: 하나의 코드베이스로 N개 시설의 예약 사이트를 서브도메인별로 제공하는 멀티테넌트 SaaS. 프론트엔드 아키텍처·보안 설계를 주도.
 period: 2026.04 - 재직중
-role: 프론트엔드 아키텍처·보안 설계 (단독 구축)
+role: 프론트엔드 아키텍처·보안 설계 (주도)
 category: company
 stack:
   - Next.js
@@ -26,15 +26,15 @@ order: 3
 - 요청 Host 헤더를 서버에서 해석해 CSS 변수를 SSR 단계에서 인라인 주입
 - 예약 식별정보를 AES-256-GCM 봉인 토큰(만료 시각을 포함한 짧은 수명 · 용도별 분리)으로 인계, URL 쿼리 노출 제거
 - BFF 프록시로 API 키를 서버사이드에 은닉하고, 외부 HTML 새니타이즈로 XSS 차단
-- 결제 연동. 등록 실패 시 서버가 승인을 취소하고, 프론트는 취소 완료 여부까지 판별해 "결제 실패"와 "결제됨·예약 실패"를 분리 안내
+- 결제 연동. 등록 실패 시 서버가 승인을 취소하고, 프론트는 취소 완료 여부까지 판별해 같은 오류 화면에서 부제 문구로 구분 안내
 - 외부 상태 라이브러리 없이 RSC + URL 상태 + 경량 Context로 설계, 핵심 로직은 Vitest로 커버
-- 성능 측정값이 없던 예약 페이지에 Lighthouse 합성 측정 기준선(4개 경로, desktop 3회 median)을 세우고, 레저 상세 CLS의 원인을 layout-shift attribution으로 특정해 스켈레톤을 실제 갤러리와 같은 박스로 교체
+- 성능 측정값이 없던 예약 페이지에 Lighthouse 합성 측정 기준선(숙박 상세 2곳, 레저 상세, 결제 복귀 4개 경로, desktop 3회 median)을 세우고, 레저 상세 CLS의 원인을 layout-shift attribution으로 특정해 스켈레톤을 실제 갤러리와 같은 박스로 교체
 
 ## 효과
 
 - 신규 시설 추가 시 코드 변경 없이 설정만으로 확장
 - 초기 렌더에서 브랜드 색이 깜빡이지 않고, 예약 식별정보의 URL 쿼리 노출 제거
-- 하드코딩 값 다수를 디자인 토큰화해 6개 상수/토큰으로 정리
+- Tailwind 임의값 120개를 디자인 토큰으로 치환해 6개로 줄임(토큰화가 부적절한 값만 남김)
 - 레저 상세 CLS 0.440 → 0.074 (동일 조건 재측정, 임계값 0.1 이내)
 
 ### 관련 글
@@ -43,4 +43,4 @@ order: 3
 - [누구나 인증 헤더를 붙여 보낼 수 있었다 — BFF 프록시에서 헤더를 지우고 다시 심은 이야기](/blog/posts/bff-proxy-forged-auth-headers)
 - [URL에 예약번호를 실어야 했다 — 개인정보를 봉인 토큰으로 감춘 이야기](/blog/posts/sealed-token-aes-gcm)
 - [결제는 됐는데 예약이 안 됐다 — '과금-미예약' 불일치를 구조로 막은 이야기](/blog/posts/payment-booking-consistency)
-- [토큰 시스템을 만들어놓고 아무도 안 쓰고 있었다 — Tailwind 임의값을 걷어낸 이야기](/blog/posts/tailwind-arbitrary-values-to-tokens)
+- [Tailwind 임의값 120개가 컴포넌트에 박혀 있었다 - 토큰을 추가해 걷어내고 6개를 남긴 이야기](/blog/posts/tailwind-arbitrary-values-to-tokens)

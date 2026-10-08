@@ -15,8 +15,7 @@ draft: true
 > 관련 프로젝트: [CRS 어드민 상품마감·요금재고 화면 재설계](/projects/crs-admin-inventory-redesign)
 > 읽은 글: [[번역] Next.js에서 낙관적 업데이트 조정하기](https://imnotadevleoper.tistory.com/393) (유승완 번역) / [원문](https://aurorascharff.no/posts/coordinating-optimistic-updates-in-nextjs/) (Aurora Scharff)
 
-같은 글을 읽고 개인 프로젝트의 덮어쓰기 버그를 [앞선 쓰기가 조용히 사라졌다](/blog/posts/optimistic-update-lost-write)에
-정리한 적이 있다. 이번에는 회사 코드다. B2B 어드민 요금 화면에서 고친 버그 하나인데, 원인이 된 줄도
+같은 글로 개인 프로젝트의 덮어쓰기 버그를 정리한 관련 글이 있다([앞선 쓰기가 조용히 사라졌다](/blog/posts/optimistic-update-lost-write)). 이번에는 회사 코드다. B2B 어드민 요금 화면에서 고친 버그 하나인데, 원인이 된 줄도
 고친 줄도 내가 썼다. 그 사이가 16개월이다.
 
 ## 아티클 요약: 확정된 결과와 진행 중인 의도는 다른 상태다
@@ -95,8 +94,8 @@ const pkgId = payAsync?.pkgId || watchedPkgId;
 다만 "한 번 채우고 끝"이라고 단정하기는 어렵다. 객실, 패키지 셀렉트의 두 번째 effect는 목록 데이터가
 바뀔 때마다 다시 돌고, atom의 식별자가 새 목록에 있으면 다시 `setValue`를 한다. atom이 비워지지 않으니
 같은 시설 안에서 다른 선택을 바꿔 목록이 다시 오면 동기화 값으로 되돌아갈 수 있는 경로가 코드상 남아
-있다. 이 경로로 재현한 기록은 없다. 그리고 이 수정은 아직 기능 브랜치에 있고, 로컬에 있는 원격 참조
-기준으로 dev, main에는 들어가지 않았다.
+있다. 이 경로로 재현한 기록은 없다. 이 수정은 커밋 당일(2026-08-03) 병합 `a91f31e8`로 dev에,
+`cefb1619`로 main에 들어갔다.
 
 ## 아티클과 나란히 놓으면
 

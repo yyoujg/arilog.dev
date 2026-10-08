@@ -1,14 +1,16 @@
 ---
 title: CRS 어드민 상품마감·요금재고 화면 재설계
-summary: 3개 API 순차 호출 구조 때문에 호출 순서가 곧 조회 방향이 되어버린 화면을, 단일 API의 방향 파라미터로 재설계했다. 판매마감 벌크 처리의 토글 반전 결함도 함께 짚었다.
+summary: 3개 API 순차 호출 구조 때문에 호출 순서가 곧 조회 방향이 되어버린 화면을, 조회 엔드포인트 하나에 type 파라미터(hotel, room, package)를 두는 구조로 재설계했다.
 period: 2024.08 - 2025.03
 role: CRS 어드민 판매·상품 화면 설계
 category: company
 stack:
-  - Next.js
   - React
+  - Vite
   - TypeScript
   - TanStack Query
+  - Jotai
+  - MUI
 thumbnail: /images/projects/company-project-placeholder.svg
 featured: true
 draft: false
@@ -21,13 +23,11 @@ order: 9
 
 ## 해결
 
-- 순차 호출 구조를 걷어내고, 단일 API에 방향 파라미터를 둬서 양방향 조회로 재설계
-- 판매마감 저장이 현재 상태의 반대값을 쓰는 토글이라, 객실을 벌크로 선택하면 결과가 뒤섞이던 결함도 함께 수정
+- 호텔, 객실, 패키지 조회를 엔드포인트 하나(`/api/product/search`)로 통합하고 `type` 파라미터로 구분하게 바꿔, 순서 고정 없이 양방향으로 조회하도록 재설계(호출은 3개 유지)
 
 ## 효과
 
 - 호출 순서에 종속되지 않고 원하는 방향으로 바로 조회 가능
-- 벌크 선택 시 결과가 뒤섞이던 결함 제거
 
 ### 관련 글
 

@@ -1,7 +1,7 @@
 ---
 title: 테스트를 세 번 고쳤는데 CSS가 없었다 - '10 anti-AI slop moves'를 읽고 CI에서만 실패한 키보드 테스트를 다시 본 이야기
 description: 생성 속도가 리뷰 속도를 넘을 때 기계 검사로 사람이 볼 양을 줄이라는 글을 읽고, 사내 디자인 시스템 스토리북에서 CI에서만 실패한 Scrollbar 키보드 테스트를 다시 봤다. 테스트를 세 번 고쳤지만 원인은 CI가 CSS를 만들지 않은 것이었고, 그 사고에서 생긴 건 규칙이 아니라 CI 스텝 한 줄이었다.
-date: 2026-09-09
+date: 2026-10-07
 category: 트러블슈팅
 tags:
   - CI
@@ -103,6 +103,7 @@ await waitFor(() => {
 ```json
 "prestorybook": "npm run sync:ds-css",
 "prebuild-storybook": "npm run sync:ds-css",
+...
 "test-storybook": "vitest --project storybook run",
 ```
 
