@@ -214,6 +214,8 @@
   padding: 0.125rem 0.375rem;
   font-weight: 400;
   font-size: 0.875em;
+  /* 본문의 keep-all을 상속하면 긴 경로·호출식이 375px에서 가로로 넘친다 */
+  overflow-wrap: anywhere;
 }
 
 /* Shiki 듀얼 테마: 색상은 CSS 변수로, 배경은 컨테이너(code-bg) 사용 */
