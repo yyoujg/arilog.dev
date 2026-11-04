@@ -80,7 +80,7 @@ const CAPABILITIES = [
   {
     area: "디자인 시스템",
     detail:
-      "2계층 토큰 · 컴포넌트 37종 · tsup 패키지화 · size-limit CI 게이트 · 소비 앱 CSS 통합",
+      "2계층 토큰 · 컴포넌트 41종 · tsup 패키지화 · size-limit CI 게이트 · 소비 앱 CSS 통합",
   },
   {
     area: "도메인",
